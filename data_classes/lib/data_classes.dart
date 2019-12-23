@@ -7,9 +7,12 @@ import 'package:meta/meta.dart';
 class GenerateDataClass {
   const GenerateDataClass({
     this.generateCopyWith = true,
-  }) : assert(generateCopyWith != null);
+    this.serialize = true,
+  })  : assert(generateCopyWith != null),
+        assert(serialize != null);
 
   final bool generateCopyWith;
+  final bool serialize;
 }
 
 @immutable

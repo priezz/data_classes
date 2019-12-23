@@ -80,18 +80,38 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         .constantValue
         .getField('generateCopyWith')
         .toBoolValue();
+    final serialize = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('serialize')
+        .toBoolValue();
     if (generateCopyWith && fields.any(_isNullable)) {
       final exampleField = fields.firstWhere(_isNullable).name;
-      throw CodeGenError(
-          'You tried to generate a copyWith method for the $name class (which '
-          'gets generated based on the Mutable$name class). Unfortunately, '
-          'you can only generate this method if all the fields are '
-          'non-nullable, but for example, the $exampleField field is marked '
-          'with @nullable. If you really want a copyWith method, you should '
+      // throw CodeGenError(
+      //     'You tried to generate a copyWith method for the "$name" class (which '
+      //     'gets generated based on the "Mutable$name" class). Unfortunately, '
+      //     'you can only generate this method if all the fields are '
+      //     'non-nullable, but for example, the "$exampleField" field is marked '
+      //     'with @nullable. If you really want a copyWith method, you should '
+      //     'consider removing that annotation.\n'
+      //     'Why does this rule exist? Let\'s say, we would allow the copyWith '
+      //     'method to get generated. If you would call it, it would have no '
+      //     'way of knowing whether you just didn\'t pass in a "$exampleField" as '
+      //     'a parameter or you intentionally tried to set it to null, because '
+      //     'in both cases, the function parameter would be null. That makes '
+      //     'the code vulnerable to subtle bugs when passing variables to the '
+      //     'copyWith method. '
+      //     'For more information about this, see the following GitHub issue: '
+      //     'https://github.com/marcelgarus/data_classes/issues/3');
+      print(
+          'You try to generate a copyWith method for the "$name" class (which '
+          'gets generated based on the "Mutable$name" class). However, the'
+          ' "$exampleField" field is marked with @nullable, you should '
           'consider removing that annotation.\n'
-          'Why does this rule exist? Let\'s say, we would allow the copyWith '
-          'method to get generated. If you would call it, it would have no '
-          'way of knowing whether you just didn\'t pass in a $exampleField as '
+          'Let\'s say, we would allow the copyWith method to get generated. '
+          'If you would call it, it would have no '
+          'way of knowing whether you just didn\'t pass in a "$exampleField" as '
           'a parameter or you intentionally tried to set it to null, because '
           'in both cases, the function parameter would be null. That makes '
           'the code vulnerable to subtle bugs when passing variables to the '
@@ -254,13 +274,15 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       "')';",
       '}',
 
-      // fromJson
-      'factory $name.fromJson(Map<String, dynamic> json) =>',
-      '$name.fromMutable(_\$Mutable${name}FromJson(json));\n',
+      if (serialize) ...[
+        // fromJson
+        'factory $name.fromJson(Map<String, dynamic> json) =>',
+        '$name.fromMutable(_\$Mutable${name}FromJson(json));\n',
 
-      // toJson
-      'Map<String, dynamic> toJson() =>',
-      '_\$Mutable${name}ToJson(this.toMutable());\n',
+        // toJson
+        'Map<String, dynamic> toJson() =>',
+        '_\$Mutable${name}ToJson(this.toMutable());\n',
+      ],
 
       // End of the class.
       '}',
