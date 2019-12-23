@@ -207,6 +207,16 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
           .join(','),
       ';\n',
 
+      // Constructor .init() with default values
+      'factory $name.init({',
+      for (final field in fields) '${field.type} ${field.name},',
+      '}) {',
+      'final mutable = Mutable$name();',
+      for (final field in fields)
+        'if (${field.name} != null) mutable.${field.name} = ${field.name};',
+      '\nreturn $name.fromMutable(mutable);',
+      '}\n',
+
       // Converters (fromMutable and toMutable).
       '/// Creates a [$name] from a [Mutable$name].',
       '$name.fromMutable(Mutable$name mutable) : ',
