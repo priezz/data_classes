@@ -200,13 +200,16 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '}\n',
 
       // Equality stuff (== and hashCode).
+      // TODO: Deep check for equality
       '/// Checks if this [$name] is equal to the other one.',
+      '@override',
       'bool operator ==(Object other) {',
       'return other is $name &&',
       fields
           .map((field) => '${field.name} == other.${field.name}')
           .join(' &&\n'),
       ';\n}\n',
+      '@override',
       'int get hashCode {',
       'return hashList([',
       fields.map((field) => field.name).join(', '),
@@ -244,11 +247,20 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       // toString converter.
       '/// Converts this [$name] into a [String].',
+      '@override',
       'String toString() {',
       "return '$name(\\n'",
       for (final field in fields) "'  ${field.name}: \$${field.name}\\n'",
       "')';",
       '}',
+
+      // fromJson
+      'factory $name.fromJson(Map<String, dynamic> json) =>',
+      '$name.fromMutable(_\$Mutable${name}FromJson(json));\n',
+
+      // toJson
+      'Map<String, dynamic> toJson() =>',
+      '_\$Mutable${name}ToJson(this.toMutable());\n',
 
       // End of the class.
       '}',

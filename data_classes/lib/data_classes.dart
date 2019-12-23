@@ -1,3 +1,4 @@
+export 'package:json_annotation/json_annotation.dart';
 export 'package:meta/meta.dart' show immutable, required;
 
 import 'package:meta/meta.dart';
@@ -5,7 +6,7 @@ import 'package:meta/meta.dart';
 @immutable
 class GenerateDataClass {
   const GenerateDataClass({
-    this.generateCopyWith = false,
+    this.generateCopyWith = true,
   }) : assert(generateCopyWith != null);
 
   final bool generateCopyWith;
@@ -15,7 +16,7 @@ class GenerateDataClass {
 class GenerateValueGetters {
   const GenerateValueGetters({
     this.usePrefix = false,
-    this.generateNegations = false,
+    this.generateNegations = true,
   })  : assert(usePrefix != null),
         assert(generateNegations != null);
 

@@ -8,4 +8,7 @@ environment:
   sdk: ">=2.2.2 <3.0.0"
 
 dependencies:
-  meta: ^1.1.7
+  meta: ^1.1.8
+
+peer_dependencies:
+  json_serializable: ^3.2.4
