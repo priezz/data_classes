@@ -297,7 +297,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   /// Turns the [type] into a type with prefix.
   String _qualifiedType(DartType type, Map<String, String> qualifiedImports) {
     final typeLibrary = type.element.library;
-    final prefixOrNull = qualifiedImports[typeLibrary.identifier];
+    final prefixOrNull = qualifiedImports[typeLibrary?.identifier];
     final prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
     return '$prefix$type';
   }
