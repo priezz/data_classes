@@ -186,6 +186,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     // Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
+      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable',
+
       // Start of the class.
       originalClass.documentationComment ??
           '/// This class is the immutable pendant of the [Mutable$name] class.',
