@@ -68,6 +68,17 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
             'class Mutable$name has the field ${field.name}, which only has a '
             'setter.');
       } else {
+        if (field.type.toString().contains('dynamic')) {
+          throw CodeGenError(
+            'Dynamic types are not allowed.\n'
+            'Fix:\n'
+            '  class Mutable$name {\n'
+            '    ...\n'
+            '    <SpecificType> ${field.name};'
+            '    ...\n'
+            '  }',
+          );
+        }
         fields.add(field);
       }
     }
@@ -331,6 +342,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final typeLibrary = type.element.library;
     final prefixOrNull = qualifiedImports[typeLibrary?.identifier];
     final prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
+
     return '$prefix$type';
   }
 }
