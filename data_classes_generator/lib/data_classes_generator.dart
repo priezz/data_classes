@@ -26,10 +26,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
           'You can only annotate classes with @GenerateDataClass(), but '
           '"${element.name}" isn\'t a class.');
     }
-    if (!element.name.startsWith('Mutable')) {
+    if (!element.name.endsWith('Model')) {
       throw CodeGenError(
           'The names of classes annotated with @GenerateDataClass() should '
-          'start with "Mutable", for example Mutable${element.name}. The '
+          'end with "Model", for example ${element.name}Model. The '
           'immutable class (in that case, ${element.name}) will then get '
           'automatically generated for you by running "pub run build_runner '
           'build" (or "flutter pub run build_runner build" if you\'re using '
@@ -37,7 +37,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     }
 
     final originalClass = element as ClassElement;
-    final name = originalClass.name.substring('Mutable'.length);
+    final name = originalClass.name.substring(0, 'Model'.length);
 
     // When import prefixes (`import '...' as '...';`) are used in the mutable
     // class's file, then in the generated file, we need to use the right
@@ -56,25 +56,26 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     for (final field in originalClass.fields) {
       // print(
       //     '$field ${field.initializer} ${field.initializer} ${field.computeConstantValue()}');
-      if (field.isFinal && !field.isSynthetic) {
-        throw CodeGenError(
-            'Mutable classes shouldn\'t have final fields, but the class '
-            'Mutable$name has the final field ${field.name}.');
-      } else if (field.setter == null) {
+      // if (field.isFinal && !field.isSynthetic) {
+      //   throw CodeGenError(
+      //       'Mutable classes shouldn\'t have final fields, but the class '
+      //       '${name}Model has the final field ${field.name}.');
+      // } else
+      if (field.setter == null) {
         assert(field.getter != null);
         getters.add(field);
-      } else if (field.getter == null) {
-        assert(field.setter != null);
-        throw CodeGenError(
-            'Mutable classes shouldn\'t have setter-only fields, but the '
-            'class Mutable$name has the field ${field.name}, which only has a '
-            'setter.');
+        // } else if (field.getter == null) {
+        //   assert(field.setter != null);
+        //   throw CodeGenError(
+        //       'Mutable classes shouldn\'t have setter-only fields, but the '
+        //       'class ${name}Model has the field ${field.name}, which only has a '
+        //       'setter.');
       } else {
         if (field.type.toString().contains('dynamic')) {
           throw CodeGenError(
             'Dynamic types are not allowed.\n'
             'Fix:\n'
-            '  class Mutable$name {\n'
+            '  class ${name}Model {\n'
             '    ...\n'
             '    <SpecificType> ${field.name};'
             '    ...\n'
@@ -109,7 +110,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       final exampleField = fields.firstWhere(_isNullable).name;
       // throw CodeGenError(
       //     'You tried to generate a copyWith method for the "$name" class (which '
-      //     'gets generated based on the "Mutable$name" class). Unfortunately, '
+      //     'gets generated based on the "${name}Model" class). Unfortunately, '
       //     'you can only generate this method if all the fields are '
       //     'non-nullable, but for example, the "$exampleField" field is marked '
       //     'with @nullable. If you really want a copyWith method, you should '
@@ -125,7 +126,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       //     'https://github.com/marcelgarus/data_classes/issues/3');
       print(
           'You try to generate a copyWith method for the "$name" class (which '
-          'gets generated based on the "Mutable$name" class). However, the'
+          'gets generated based on the "${name}Model" class). However, the'
           ' "$exampleField" field is marked with @nullable, you should '
           'consider removing that annotation.\n'
           'Let\'s say, we would allow the copyWith method to get generated. '
@@ -140,8 +141,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     }
 
     // Users can annotate fields that hold an enum value with
-    // `@GenerateValueGetters()` to generate value getters on the immutable
-    // class. Here, we prepare a map from the getter name to its code content.
+    // `@GenerateValueGetters()` to generate value getters.
+    // Here, we prepare a map from the getter name to its code content.
     final valueGetters = <String, String>{};
     for (final field in fields) {
       final annotation = field.metadata
@@ -160,7 +161,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       final enumClass = field.type.element as ClassElement;
       if (enumClass?.isEnum == false) {
         throw CodeGenError(
-            'You annotated the Mutable$name\'s ${field.name} with '
+            'You annotated the ${name}Model\'s ${field.name} with '
             '@GenerateValueGetters(), but that\'s of '
             '${enumClass == null ? 'an unknown type' : 'the type ${enumClass.name}'}, '
             'which is not an enum. @GenerateValueGetters() should only be '
@@ -181,7 +182,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
           if (valueGetters.containsKey(getter)) {
             throw CodeGenError(
                 'A conflict occurred while generating value getters. The two '
-                'conflicting value getters of the Mutable$name class are:\n'
+                'conflicting value getters of the ${name}Model class are:\n'
                 '- $getter, which tests if ${valueGetters[getter]}\n'
                 '- $getter, which tests if $content');
           }
@@ -198,17 +199,17 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       // Start of the class.
       originalClass.documentationComment ??
-          '/// This class is the immutable pendant of the [Mutable$name] class.',
+          '/// This class is the pendant of the [${name}Model] class.',
       if (immutable)
         '@immutable',
-      'class $name extends Mutable$name {',
+      'class $name extends ${name}Model {',
 
       // The field members.
       for (final field in fields) ...[
         if (field.documentationComment != null) field.documentationComment,
         '@override',
         // TODO: Resolve issue with the lack of analyzer error when setting overridden final fields
-        if (immutable)
+        if (immutable || field.isFinal)
           'final ',
         _fieldToTypeAndName(field, qualifiedImports),
         // if (field.initializer != null) ' = ${field.initializer}',
@@ -232,10 +233,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields)
         if (!_isNullable(field)) 'assert(${field.name} != null);',
       '\n',
-      'final mutable = Mutable$name();',
+      'final model = ${name}Model();',
       'return $name._(',
       for (final field in fields)
-        '${field.name}: ${field.name} ?? mutable.${field.name},',
+        '${field.name}: ${field.name} ?? model.${field.name},',
       ');',
       '}\n',
 
@@ -244,13 +245,13 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '});\n',
 
       // Converters (fromMutable and toMutable).
-      '/// Creates a [$name] from a [Mutable$name].',
-      '$name.fromMutable(Mutable$name mutable) : ',
+      '/// Creates a [$name] from a [${name}Model].',
+      '$name.fromMutable(${name}Model mutable) : ',
       fields.map((field) => '${field.name} = mutable.${field.name}').join(','),
       ';\n',
-      '/// Turns this [$name] into a [Mutable$name].',
-      'Mutable$name toMutable() {',
-      'return Mutable$name()',
+      '/// Turns this [$name] into a [${name}Model].',
+      '${name}Model toMutable() {',
+      'return ${name}Model()',
       fields.map((field) => '..${field.name} = ${field.name}').join(),
       ';',
       '}\n',
@@ -261,7 +262,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '@override',
       'bool operator ==(Object other) {',
       'Function eq = const DeepCollectionEquality().equals;\n',
-      'return identical(this, other) || other is $name &&',
+      'return identical(this, other) || other is ${name}Model &&',
 
       fields
           .map(
@@ -280,7 +281,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       // copy
       '/// Copies this [$name] with some changed attributes.',
-      '$name copy(void Function(Mutable$name mutable) changeAttributes) {',
+      '$name copy(void Function(${name}Model source) changeAttributes) {',
       'assert(changeAttributes != null,',
       '"You called $name.copy, but didn\'t provide a function for changing "',
       '"the attributes.\\n"',
@@ -317,11 +318,11 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       if (serialize) ...[
         // fromJson
         'factory $name.fromJson(Map<String, dynamic> json) =>',
-        '$name.fromMutable(_\$Mutable${name}FromJson(json));\n',
+        '$name.fromMutable(_\$${name}ModelFromJson(json));\n',
 
         // toJson
         'Map<String, dynamic> toJson() =>',
-        '_\$Mutable${name}ToJson(this.toMutable());\n',
+        '_\$${name}ModelToJson(this.toMutable());\n',
       ],
 
       // End of the class.

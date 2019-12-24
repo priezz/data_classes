@@ -15,11 +15,10 @@ void main() {
   final lime = yellowFruit.copy((f) => f.name = 'lime');
   apple.big = true; // should be analyzer error
 
-  print('$apple, $lime, $orange1');
-  print('${orange1 == orange2}\n');
-  print('${orange1 == apple}\n');
+  print('Apple = $apple\nLime = $lime\nOrange = $orange1');
+  print('Oranges are equal: ${orange1 == orange2}');
+  print('Orange is equal to apple: ${orange1 == apple}');
   print('${orange1.coloredName}\n');
-  print('${apple.getColoredName()}\n');
 }
 
 enum Color { red, yellow, green, brown, orange }
@@ -28,7 +27,7 @@ enum Shape { round, curved }
 /// A fruit with a doc comment
 @JsonSerializable()
 @GenerateDataClass(immutable: true)
-class MutableFruit {
+class FruitModel {
   String name = 'unknown';
 
   /// A field with a doc comment
@@ -42,8 +41,7 @@ class MutableFruit {
   @nullable
   bool big;
 
-  String get coloredName => '$color $name';
-  String getColoredName() => '$big $color $name';
+  String get coloredName => '$name is $color';
 }
 
 const orangeJson = {
