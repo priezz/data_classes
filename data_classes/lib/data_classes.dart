@@ -1,3 +1,5 @@
+export 'package:collection/collection.dart';
+export 'package:equatable/equatable.dart';
 export 'package:json_annotation/json_annotation.dart';
 export 'package:meta/meta.dart' show immutable, required;
 
@@ -7,11 +9,13 @@ import 'package:meta/meta.dart';
 class GenerateDataClass {
   const GenerateDataClass({
     this.generateCopyWith = true,
+    this.immutable = false,
     this.serialize = true,
   })  : assert(generateCopyWith != null),
         assert(serialize != null);
 
   final bool generateCopyWith;
+  final bool immutable;
   final bool serialize;
 }
 

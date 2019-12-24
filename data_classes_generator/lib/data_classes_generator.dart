@@ -54,7 +54,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final getters = <FieldElement>{};
 
     for (final field in originalClass.fields) {
-      if (field.isFinal) {
+      // print(
+      //     '$field ${field.initializer} ${field.initializer} ${field.computeConstantValue()}');
+      if (field.isFinal && !field.isSynthetic) {
         throw CodeGenError(
             'Mutable classes shouldn\'t have final fields, but the class '
             'Mutable$name has the final field ${field.name}.');
@@ -90,6 +92,12 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
         .getField('generateCopyWith')
+        .toBoolValue();
+    final immutable = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('immutable')
         .toBoolValue();
     final serialize = originalClass.metadata
         .firstWhere((annotation) =>
@@ -186,18 +194,25 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     // Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
-      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable',
+      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable, must_be_immutable',
 
       // Start of the class.
       originalClass.documentationComment ??
           '/// This class is the immutable pendant of the [Mutable$name] class.',
-      '@immutable',
-      'class $name {',
+      if (immutable)
+        '@immutable',
+      'class $name extends Mutable$name {',
 
       // The field members.
       for (final field in fields) ...[
         if (field.documentationComment != null) field.documentationComment,
-        'final ${_fieldToTypeAndName(field, qualifiedImports)};\n',
+        '@override',
+        // TODO: Resolve issue with the lack of analyzer error when setting overridden final fields
+        if (immutable)
+          'final ',
+        _fieldToTypeAndName(field, qualifiedImports),
+        // if (field.initializer != null) ' = ${field.initializer}',
+        ';\n',
       ],
 
       // The value getters.
@@ -208,27 +223,25 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       // The default constructor.
       '/// Default constructor that creates a new [$name] with the given',
       '/// attributes.',
-      'const $name({',
+      'factory $name({',
       for (final field in fields) ...[
-        if (!_isNullable(field)) '@required ',
-        'this.${field.name},'
+        if (_isRequired(field)) '@required ',
+        '${field.type} ${field.name},'
       ],
-      '}) : ',
-      fields
-          .where((field) => !_isNullable(field))
-          .map((field) => 'assert(${field.name} != null)')
-          .join(','),
-      ';\n',
-
-      // Constructor .init() with default values
-      'factory $name.init({',
-      for (final field in fields) '${field.type} ${field.name},',
       '}) {',
-      'final mutable = Mutable$name();',
       for (final field in fields)
-        'if (${field.name} != null) mutable.${field.name} = ${field.name};',
-      '\nreturn $name.fromMutable(mutable);',
+        if (!_isNullable(field)) 'assert(${field.name} != null);',
+      '\n',
+      'final mutable = Mutable$name();',
+      'return $name._(',
+      for (final field in fields)
+        '${field.name}: ${field.name} ?? mutable.${field.name},',
+      ');',
       '}\n',
+
+      '$name._({',
+      for (final field in fields) 'this.${field.name},',
+      '});\n',
 
       // Converters (fromMutable and toMutable).
       '/// Creates a [$name] from a [Mutable$name].',
@@ -242,22 +255,28 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       ';',
       '}\n',
 
-      // Equality stuff (== and hashCode).
-      // TODO: Deep check for equality
+      // Deep equality stuff (== and hashCode).
+      /// https://stackoverflow.com/questions/10404516/how-can-i-compare-lists-for-equality-in-dart
       '/// Checks if this [$name] is equal to the other one.',
       '@override',
       'bool operator ==(Object other) {',
-      'return other is $name &&',
+      'Function eq = const DeepCollectionEquality().equals;\n',
+      'return identical(this, other) || other is $name &&',
+
       fields
-          .map((field) => '${field.name} == other.${field.name}')
+          .map(
+            (field) =>
+                // field.type.displayName.startsWith('List')
+                // ? 'eq(${field.name}, other.${field.name})'
+                // : '${field.name} == other.${field.name}')
+                'eq(${field.name}, other.${field.name})',
+          )
           .join(' &&\n'),
       ';\n}\n',
       '@override',
-      'int get hashCode {',
-      'return hashList([',
+      'int get hashCode => hashList([',
       fields.map((field) => field.name).join(', '),
       ']);\n',
-      '}\n',
 
       // copy
       '/// Copies this [$name] with some changed attributes.',
@@ -267,10 +286,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '"the attributes.\\n"',
       '"If you just want an unchanged copy: You don\'t need one, just use "',
       '"the original. The whole point of data classes is that they can\'t "',
-      '"change anymore, so there\'s no harm in using the original class."',
+      '"change anymore, so there\'s no harm in using the original class.",',
       ');',
       'final mutable = this.toMutable();',
-      'changeAttributes(mutable);',
+      'changeAttributes(mutable);\n',
       'return $name.fromMutable(mutable);',
       '}\n',
 
@@ -280,12 +299,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '$name copyWith({',
         for (final field in fields)
           '${_fieldToTypeAndName(field, qualifiedImports)},',
-        '}) {',
-        'return $name(',
+        '}) => $name(',
         for (final field in fields)
           '${field.name}: ${field.name} ?? this.${field.name},',
         ');',
-        '}',
       ],
 
       // toString converter.
@@ -320,6 +337,13 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     return field.metadata
         .any((annotation) => annotation.element.name == nullable);
+  }
+
+  /// Whether the [field] is nullable.
+  bool _isRequired(FieldElement field) {
+    assert(field != null);
+
+    return !_isNullable(field) && field.initializer == null;
   }
 
   /// Capitalizes the first letter of a string.

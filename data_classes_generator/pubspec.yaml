@@ -1,15 +1,15 @@
 name: data_classes_generator
-description: Automatically generates immutable data classes for you based on a mutable "blueprint" class.
-version: 3.0.0
-author: Marcel Garus <marcel.garus@gmail.com>
-homepage: https://github.com/marcelgarus/data_classes
+description: Automatically generates data classes for you based on a "blueprint" class.
+version: 4.0.0
+author: Alexandr Priezzhev <a@priezz.net>, Marcel Garus <marcel.garus@gmail.com>
+homepage: https://github.com/priezz/data_classes
 
 environment:
-  sdk: ">=2.2.2 <3.0.0"
+  sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
   analyzer: ">=0.34.0"
-  build: ">=0.34.0 <2.0.0"
+  build: ">=0.38.0 <2.0.0"
   # data_classes: ^3.0.0
   # data_classes:
   #   path: ../data_classes/
