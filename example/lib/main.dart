@@ -11,7 +11,7 @@ void main() {
   );
   final orange1 = Fruit.fromJson(orangeJson);
   final orange2 = Fruit.fromJson(orangeJson);
-  final yellowFruit = Fruit(Color.yellow);
+  final yellowFruit = Fruit(color: Color.yellow);
   final lime = yellowFruit.copy((f) => f.name = 'lime');
   apple.big = true; // should be analyzer error
 
