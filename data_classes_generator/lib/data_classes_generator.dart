@@ -195,10 +195,18 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       }
     }
 
+    final Iterable<String> asserts = fields
+        .where((field) => !_isNullable(field))
+        .map((field) => 'assert(${field.name} != null)');
+
     // Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
-      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable, must_be_immutable',
+      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable',
+      '// ignore_for_file: must_be_immutable, prefer_asserts_with_message',
+      '// ignore_for_file: always_put_required_named_parameters_first',
+      '// ignore_for_file: sort_constructors_first, lines_longer_than_80_chars',
+      '// ignore_for_file: prefer_expression_function_bodies',
 
       // Start of the class.
       originalClass.documentationComment ??
@@ -225,17 +233,14 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         'bool get ${getter.key} => ${getter.value};',
 
       // The default constructor.
-      '/// Default constructor that creates a new [$name] with the given',
-      '/// attributes.',
+      '/// Default constructor that creates a new [$name]',
+      '/// with the given attributes',
       'factory $name({',
       for (final field in fields) ...[
         if (_isRequired(field)) '@required ',
         '${field.type} ${field.name},'
       ],
       '}) {',
-      for (final field in fields)
-        if (!_isNullable(field)) 'assert(${field.name} != null);',
-      '\n',
       'final model = $name$modelClassSuffix();',
       'return $name._(',
       for (final field in fields)
@@ -245,19 +250,21 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       '$name._({',
       for (final field in fields) 'this.${field.name},',
-      '});\n',
+      '})',
+      if (asserts.isNotEmpty)
+        ': ',
+      asserts.join(','),
+      ';\n',
 
       // Converters (fromMutable and toMutable).
       '/// Creates a [$name] from a [$name$modelClassSuffix].',
       '$name.fromMutable($name$modelClassSuffix mutable) : ',
       fields.map((field) => '${field.name} = mutable.${field.name}').join(','),
       ';\n',
-      '/// Turns this [$name] into a [$name$modelClassSuffix].',
-      '$name$modelClassSuffix toMutable() {',
-      'return $name$modelClassSuffix()',
+      '/// Turns [$name] into a [$name$modelClassSuffix].',
+      '$name$modelClassSuffix toMutable() => $name$modelClassSuffix()',
       fields.map((field) => '..${field.name} = ${field.name}').join(),
-      ';',
-      '}\n',
+      ';\n',
 
       // Deep equality stuff (== and hashCode).
       /// https://stackoverflow.com/questions/10404516/how-can-i-compare-lists-for-equality-in-dart
@@ -286,11 +293,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '/// Copies this [$name] with some changed attributes.',
       '$name copy(void Function($name$modelClassSuffix source) changeAttributes) {',
       'assert(changeAttributes != null,',
-      '"You called $name.copy, but didn\'t provide a function for changing "',
-      '"the attributes.\\n"',
-      '"If you just want an unchanged copy: You don\'t need one, just use "',
-      '"the original. The whole point of data classes is that they can\'t "',
-      '"change anymore, so there\'s no harm in using the original class.",',
+      '\'You called $name.copy, \'',
+      '\'but did not provide a function for changing the attributes.\\n\'',
+      '\'If you just want an unchanged copy: You do not need one, just use \'',
+      '\'the original.\',',
       ');',
       'final mutable = this.toMutable();',
       'changeAttributes(mutable);\n',
@@ -312,11 +318,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       // toString converter.
       '/// Converts this [$name] into a [String].',
       '@override',
-      'String toString() {',
-      "return '$name(\\n'",
+      "String toString() => \'$name(\\n'",
       for (final field in fields) "'  ${field.name}: \$${field.name}\\n'",
-      "')';",
-      '}',
+      "')';\n",
 
       if (serialize) ...[
         // fromJson
