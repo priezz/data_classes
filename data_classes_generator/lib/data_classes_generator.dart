@@ -91,11 +91,17 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     // Check whether we should generate a `copyWith` method. Also ensure that
     // there are no nullable fields.
+    final builtValueSerializer = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('builtValueSerializer')
+        .toBoolValue();
     final generateCopyWith = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
-        .getField('generateCopyWith')
+        .getField('copyWith')
         .toBoolValue();
     final immutable = originalClass.metadata
         .firstWhere((annotation) =>
@@ -194,6 +200,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         }
       }
     }
+
+    final String nameUncapitalized =
+        name.substring(0, 1).toLowerCase() + name.substring(1);
 
     final Iterable<String> asserts = fields
         .where((field) => !_isNullable(field))
@@ -330,10 +339,41 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         // toJson
         'Map<String, dynamic> toJson() =>',
         '_\$$name${modelClassSuffix}ToJson(this.toMutable());\n',
+
+        if (builtValueSerializer)
+          'static Serializer<$name> get serializer => _\$${nameUncapitalized}Serializer;'
       ],
 
       // End of the class.
       '}',
+
+      if (serialize && builtValueSerializer) ...[
+        'Serializer<$name> _\$${nameUncapitalized}Serializer = new _\$${name}Serializer();\n',
+        'class _\$${name}Serializer implements StructuredSerializer<$name> {',
+        '  @override',
+        '  final Iterable<Type> types = const [$name];',
+        '  @override',
+        '  final String wireName = \'$name\';\n',
+        '  @override',
+        '  Iterable<Object> serialize(Serializers serializers, $name object,',
+        '      {FullType specifiedType = FullType.unspecified}) {',
+        '    final json = _\$$name${modelClassSuffix}ToJson(object);',
+        '    final List<Object> result = [];',
+        '    json.forEach((k, v) => result.addAll([k, v]));\n',
+        '    return result;',
+        '  }\n',
+        '  @override',
+        '  $name deserialize(Serializers serializers, Iterable<Object> serialized,',
+        '      {FullType specifiedType = FullType.unspecified}) {',
+        '    final Map<String, dynamic> json = {};',
+        '    final serializedAsList = serialized.toList();',
+        '    serializedAsList.asMap().forEach((i, key) {',
+        '      if (i.isEven) json[key] = serializedAsList[i + 1];',
+        '    });\n',
+        '    return $name.fromMutable(_\$$name${modelClassSuffix}FromJson(json),);',
+        '  }\n',
+        '}',
+      ]
     ].expand((line) => [line, '\n']));
 
     return buffer.toString();
