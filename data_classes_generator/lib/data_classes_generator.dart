@@ -333,7 +333,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       if (serialize) ...[
         // fromJson
-        'factory $name.fromJson(Map<String, dynamic> json) =>',
+        'static $name fromJson(Map<String, dynamic> json) =>',
         '$name.fromMutable(_\$$name${modelClassSuffix}FromJson(json));\n',
 
         // toJson
