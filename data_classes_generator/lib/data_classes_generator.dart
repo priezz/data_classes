@@ -333,11 +333,11 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       if (serialize) ...[
         // fromJson
-        'static $name fromJson(Map<String, dynamic> json) =>',
+        'static $name fromJson(Map<dynamic, dynamic> json) =>',
         '$name.fromMutable(_\$$name${modelClassSuffix}FromJson(json));\n',
 
         // toJson
-        'Map<String, dynamic> toJson() =>',
+        'Map<dynamic, dynamic> toJson() =>',
         '_\$$name${modelClassSuffix}ToJson(this.toMutable());\n',
 
         if (builtValueSerializer)
@@ -365,7 +365,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '  @override',
         '  $name deserialize(Serializers serializers, Iterable<Object> serialized,',
         '      {FullType specifiedType = FullType.unspecified}) {',
-        '    final Map<String, dynamic> json = {};',
+        '    final Map<dynamic, dynamic> json = {};',
         '    final serializedAsList = serialized.toList();',
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
