@@ -1,6 +1,6 @@
 name: data_classes
 description: Automatically generates data classes for you based on a "blueprint" class.
-version: 4.0.0
+version: 4.1.0
 author: Alexandr Priezzhev <a@priezz.net>, Marcel Garus <marcel.garus@gmail.com>
 homepage: https://github.com/priezz/data_classes
 

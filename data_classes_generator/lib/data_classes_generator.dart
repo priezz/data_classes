@@ -74,17 +74,18 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         //       'class $name$modelClassSuffix has the field ${field.name}, which only has a '
         //       'setter.');
       } else {
-        if (field.type.toString().contains('dynamic')) {
-          throw CodeGenError(
-            'Dynamic types are not allowed.\n'
-            'Fix:\n'
-            '  class $name$modelClassSuffix {\n'
-            '    ...\n'
-            '    <SpecificType> ${field.name};'
-            '    ...\n'
-            '  }',
-          );
-        }
+        // TODO: Create a flag to disallow dynamic types
+        // if (field.type.toString().contains('dynamic')) {
+        //   throw CodeGenError(
+        //     'Dynamic types are not allowed.\n'
+        //     'Fix:\n'
+        //     '  class $name$modelClassSuffix {\n'
+        //     '    ...\n'
+        //     '    <SpecificType> ${field.name};'
+        //     '    ...\n'
+        //     '  }',
+        //   );
+        // }
         fields.add(field);
       }
     }
@@ -133,20 +134,23 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       //     'copyWith method. '
       //     'For more information about this, see the following GitHub issue: '
       //     'https://github.com/marcelgarus/data_classes/issues/3');
-      print(
-          'You try to generate a copyWith method for the "$name" class (which '
-          'gets generated based on the "$name$modelClassSuffix" class). However, the'
-          ' "$exampleField" field is marked with @nullable, you should '
-          'consider removing that annotation.\n'
-          'Let\'s say, we would allow the copyWith method to get generated. '
-          'If you would call it, it would have no '
-          'way of knowing whether you just didn\'t pass in a "$exampleField" as '
-          'a parameter or you intentionally tried to set it to null, because '
-          'in both cases, the function parameter would be null. That makes '
-          'the code vulnerable to subtle bugs when passing variables to the '
-          'copyWith method. '
-          'For more information about this, see the following GitHub issue: '
-          'https://github.com/marcelgarus/data_classes/issues/3');
+
+      // TODO: Show the warning below only when the respective flag is set
+      // print(
+      //   'You try to generate a copyWith method for the "$name" class (which '
+      //   'gets generated based on the "$name$modelClassSuffix" class). However, the'
+      //   ' "$exampleField" field is marked with @nullable, you should '
+      //   'consider removing that annotation.\n'
+      //   'Let\'s say, we would allow the copyWith method to get generated. '
+      //   'If you would call it, it would have no '
+      //   'way of knowing whether you just didn\'t pass in a "$exampleField" as '
+      //   'a parameter or you intentionally tried to set it to null, because '
+      //   'in both cases, the function parameter would be null. That makes '
+      //   'the code vulnerable to subtle bugs when passing variables to the '
+      //   'copyWith method. '
+      //   'For more information about this, see the following GitHub issue: '
+      //   'https://github.com/marcelgarus/data_classes/issues/3',
+      // );
     }
 
     // Users can annotate fields that hold an enum value with
@@ -298,7 +302,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       fields.map((field) => field.name).join(', '),
       ']);\n',
 
-      // copy
+      /// copy
+      // TODO: Let change function be optional
       '/// Copies this [$name] with some changed attributes.',
       '$name copy(void Function($name$modelClassSuffix source) changeAttributes) {',
       'assert(changeAttributes != null,',
