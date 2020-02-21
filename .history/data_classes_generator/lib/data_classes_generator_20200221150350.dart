@@ -230,7 +230,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       "')';\n",
 
       /// copy
-      '/// Creates a new instance of [$name], which is a copy of this with some changes',
+      '/// Creates a new instance of [$name], which is a copy of [this] with some changes',
       '$name copy(${name}Builder update) {',
       'assert(update != null,',
       '\'You called $name.copy, \'',
@@ -243,7 +243,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copyWith
       if (generateCopyWith) ...[
-        '/// Creates a new instance of [$name], which is a copy of this with some changes',
+        '/// Creates a new instance of [$name], which is a copy of [this] with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
         '}) => $name.from(this, (b) => b',

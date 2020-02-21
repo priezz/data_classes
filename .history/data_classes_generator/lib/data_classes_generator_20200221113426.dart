@@ -29,7 +29,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
           '"${element.name}" isn\'t a class.');
     }
     if (!element.name.startsWith('_') || !element.name.endsWith(modelSuffix)) {
-      // if (!element.name.endsWith(modelSuffix)) {
       throw CodeGenError(
           'The names of classes annotated with @GenerateDataClass() should '
           'start with "_" and end with "Model", for example ${element.name}Model. '
@@ -43,7 +42,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     // final name = originalClass.name;
     final name = originalClass.name
         .substring(1, originalClass.name.length - modelSuffix.length);
-    final modelName = originalClass.name;
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
@@ -88,12 +86,12 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         .constantValue
         .getField('copyWith')
         .toBoolValue();
-    final immutable = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
-        .getField('immutable')
-        .toBoolValue();
+    // final immutable = originalClass.metadata
+    //     .firstWhere((annotation) =>
+    //         annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+    //     .constantValue
+    //     .getField('immutable')
+    //     .toBoolValue();
     final serialize = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
@@ -121,7 +119,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       final enumClass = field.type.element as ClassElement;
       if (enumClass?.isEnum == false) {
-        throw CodeGenError('You annotated the $modelName\'s ${field.name} with '
+        throw CodeGenError(
+            'You annotated the $name$modelSuffix\'s ${field.name} with '
             '@GenerateValueGetters(), but that\'s of '
             '${enumClass == null ? 'an unknown type' : 'the type ${enumClass.name}'}, '
             'which is not an enum. @GenerateValueGetters() should only be '
@@ -142,7 +141,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
           if (valueGetters.containsKey(getter)) {
             throw CodeGenError(
                 'A conflict occurred while generating value getters. The two '
-                'conflicting value getters of the $modelName class are:\n'
+                'conflicting value getters of the $name$modelSuffix class are:\n'
                 '- $getter, which tests if ${valueGetters[getter]}\n'
                 '- $getter, which tests if $content');
           }
@@ -152,51 +151,44 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       }
     }
 
-    // final String nameUncapitalized =
-    //     name.substring(0, 1).toLowerCase() + name.substring(1);
+    final String nameUncapitalized =
+        name.substring(0, 1).toLowerCase() + name.substring(1);
 
     /// Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
-      '// ignore_for_file: argument_type_not_assignable, lines_longer_than_80_chars, implicit_dynamic_parameter, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, unnecessary_getters_setters, sort_constructors_first',
+      '// ignore_for_file: implicit_dynamic_parameter, argument_type_not_assignable',
+      '// ignore_for_file: must_be_immutable, prefer_asserts_with_message',
+      '// ignore_for_file: always_put_required_named_parameters_first',
+      '// ignore_for_file: sort_constructors_first, lines_longer_than_80_chars',
+      '// ignore_for_file: prefer_expression_function_bodies',
+      '// ignore_for_file: overridden_fields',
 
       '/// {@nodoc}',
-      'typedef ${name}Builder = void Function($modelName);',
+      'typedef ${name}Updater = void Function($name$modelSuffix);',
 
       /// Start of the class.
-      '/// {@category model}',
-      originalClass.documentationComment
-              ?.replaceAll('/// {@nodoc}\n', '')
-              ?.replaceAll('{@nodoc}', '') ??
-          '',
-      'class $name extends $modelName {',
+      '/// {@nodoc}',
+      'class $name$modelSuffix extends $name {',
 
       // The field members.
       for (final field in fields) ...[
         if (field.documentationComment != null) field.documentationComment,
-        _fieldDeclaration(field, qualifiedImports),
-        _fieldGetter(field, qualifiedImports),
-        if (!immutable) _fieldSetter(field, qualifiedImports),
+        '@override',
+        '${_field(field, qualifiedImports)}',
+        // if (field.initializer != null) ' = ${field.initializer}',
+        ';',
       ],
 
       /// The default constructor
       '/// Creates a new [$name] with the given attributes',
-      'factory $name({',
-      for (final field in fields.where((f) => _isRequired(f)))
-        '@required ${_field(field, qualifiedImports)},',
-      for (final field in fields.where((f) => !_isRequired(f)))
-        '${_field(field, qualifiedImports)},',
-      '}) => $name.from($modelName(), (b) => b',
+      'factory $name$modelSuffix([${name}Updater update]) => $name$modelSuffix._($name._(), update);',
+      '$name$modelSuffix._($name source, [${name}Updater update]):',
+      for (final field in fields) '${field.name} = source.${field.name},',
+      ' super._() {',
+      'update?.call(this);',
       for (final field in fields)
-        '..${field.name} = ${field.name} ?? b.${field.name}',
-      ',);',
-      'factory $name.build([${name}Builder build]) => $name.from($modelName(), build);',
-      '$name.from($modelName source, [${name}Builder build]):',
-      fields.map((field) => '_${field.name} = source.${field.name}').join(','),
-      ' {\n',
-      'build?.call(this);\n',
-      for (final field in fields)
-        if (!_isNullable(field)) 'assert(_${field.name} != null);',
+        if (!_isNullable(field)) 'assert(${field.name} != null);',
       '}\n',
 
       /// Deep equality stuff (== and hashCode).
@@ -205,7 +197,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '@override',
       'bool operator ==(Object other) {',
       'final bool Function(dynamic e1, dynamic e2) eq = const DeepCollectionEquality().equals;\n',
-      'return identical(this, other) || other is $modelName &&',
+      'return identical(this, other) || other is $name$modelSuffix &&',
 
       fields
           .map(
@@ -213,7 +205,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
                 // field.type.displayName.startsWith('List')
                 // ? 'eq(${field.name}, other.${field.name})'
                 // : '${field.name} == other.${field.name}')
-                'eq(_${field.name}, other.${field.name})',
+                'eq(${field.name}, other.${field.name})',
           )
           .join(' &&\n'),
       ';\n}\n',
@@ -229,24 +221,30 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields) "'  ${field.name}: \$${field.name}\\n'",
       "')';\n",
 
+      /// End of the class.
+      '}\n',
+
+      '/// {@nodoc}',
+      'extension ${name}Extension on $name {',
+
       /// copy
-      '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) {',
+      '/// Creates a copy of this [$name] with some changes',
+      '$name copy(void Function($name$modelSuffix source) update) {',
       'assert(update != null,',
       '\'You called $name.copy, \'',
       '\'but did not provide a function for changing the attributes.\\n\'',
       '\'If you just want an unchanged copy: You do not need one, just use \'',
       '\'the original.\',',
       ');',
-      '\nreturn $name.from(this, update);',
+      '\nreturn $name$modelSuffix._(this, update);',
       '}\n',
 
       /// copyWith
       if (generateCopyWith) ...[
-        '/// Creates a new instance of [$name], which is a copy of this with some changes',
+        '/// Creates a copy of this [$name] with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.from(this, (b) => b',
+        '}) => $name$modelSuffix._(this, (b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? this.${field.name}',
         ');',
@@ -255,18 +253,20 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       if (serialize) ...[
         /// fromJson
         'static $name fromJson(Map<dynamic, dynamic> json) =>',
-        '$name.from(_\$${modelName}FromJson(json));\n',
+        '$name$modelSuffix._(_\$${name}FromJson(json));\n',
 
         /// toJson
-        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(this);\n',
-      ],
-      if (builtValueSerializer)
-        'static Serializer<$name> get serializer => _\$${name}Serializer();',
+        'Map<dynamic, dynamic> toJson() => _\$${name}ToJson(this);\n',
 
-      /// End of the class.
+        if (builtValueSerializer)
+          'static Serializer<$name> get serializer => _\$${nameUncapitalized}Serializer;'
+      ],
+
+      /// End of the extension
       '}\n',
 
-      if (builtValueSerializer) ...[
+      if (serialize && builtValueSerializer) ...[
+        'Serializer<$name> _\$${nameUncapitalized}Serializer = _\$${name}Serializer();\n',
         'class _\$${name}Serializer implements StructuredSerializer<$name> {',
         '  @override',
         '  final Iterable<Type> types = const [$name];',
@@ -275,7 +275,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '  @override',
         '  Iterable<Object> serialize(Serializers serializers, $name object,',
         '      {FullType specifiedType = FullType.unspecified}) {',
-        '    final json = _\$${modelName}ToJson(object);',
+        '    final json = _\$${name}ToJson(object);',
         '    final List<Object> result = [];',
         '    json.forEach((k, v) => result.addAll([k, v]));\n',
         '    return result;',
@@ -288,7 +288,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
         '    });\n',
-        '    return $name.from(_\$${modelName}FromJson(json));',
+        '    return $name$modelSuffix._($name._(), _\$${name}FromJson(json),);',
         '  }\n',
         '}',
       ]
@@ -323,31 +323,35 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     FieldElement field,
     Map<String, String> qualifiedImports,
   ) {
-    assert(field != null && qualifiedImports != null);
+    assert(field != null);
+    assert(qualifiedImports != null);
+
     return '${_qualifiedType(field.type, qualifiedImports)} ${field.name}';
   }
-
-  String _fieldDeclaration(
-    FieldElement field,
-    Map<String, String> qualifiedImports,
-  ) =>
-      '${_qualifiedType(field.type, qualifiedImports)} _${field.name};';
 
   String _fieldGetter(
     FieldElement field,
     Map<String, String> qualifiedImports,
-  ) =>
-      '@override\n'
-      '${_qualifiedType(field.type, qualifiedImports)} get ${field.name} => '
-      '_${field.name};';
+  ) {
+    assert(field != null);
+    assert(qualifiedImports != null);
+
+    return '@override\n'
+        '${_qualifiedType(field.type, qualifiedImports)} get ${field.name} => '
+        '_model.${field.name};';
+  }
 
   String _fieldSetter(
     FieldElement field,
     Map<String, String> qualifiedImports,
-  ) =>
-      '@override\n'
-      'set ${field.name}(${_qualifiedType(field.type, qualifiedImports)} value) => '
-      '_${field.name} = value;';
+  ) {
+    assert(field != null);
+    assert(qualifiedImports != null);
+
+    return '@override\n'
+        'set ${field.name}(${_qualifiedType(field.type, qualifiedImports)} value) => '
+        '_model.${field.name} = value;';
+  }
 
   /// Turns the [type] into a type with prefix.
   String _qualifiedType(DartType type, Map<String, String> qualifiedImports) {

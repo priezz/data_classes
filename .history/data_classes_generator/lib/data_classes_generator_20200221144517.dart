@@ -158,7 +158,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     /// Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
-      '// ignore_for_file: argument_type_not_assignable, lines_longer_than_80_chars, implicit_dynamic_parameter, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, unnecessary_getters_setters, sort_constructors_first',
+      '// ignore_for_file: argument_type_not_assignable, lines_longer_than_80_chars, implicit_dynamic_parameter, non_constant_identifier_names, prefer_asserts_with_message, prefer_expression_function_bodies, unnecessary_getters_setters, sort_constructors_first',
 
       '/// {@nodoc}',
       'typedef ${name}Builder = void Function($modelName);',
@@ -230,8 +230,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       "')';\n",
 
       /// copy
-      '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) {',
+      '/// Creates a copy of this [$name] with some changes',
+      '$name copy(void Function($modelName source) update) {',
       'assert(update != null,',
       '\'You called $name.copy, \'',
       '\'but did not provide a function for changing the attributes.\\n\'',
@@ -243,7 +243,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copyWith
       if (generateCopyWith) ...[
-        '/// Creates a new instance of [$name], which is a copy of this with some changes',
+        '/// Creates a copy of this [$name] with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
         '}) => $name.from(this, (b) => b',
@@ -254,7 +254,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       if (serialize) ...[
         /// fromJson
-        'static $name fromJson(Map<dynamic, dynamic> json) =>',
+        'factory $name.fromJson(Map<dynamic, dynamic> json) =>',
         '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
