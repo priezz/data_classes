@@ -240,7 +240,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '\'If you just want an unchanged copy: You do not need one, just use \'',
       '\'the original.\',',
       ');',
-      '\nreturn $name.from(_model, update);',
+      '\nreturn $name.from(this, update);',
       '}\n',
 
       /// copyWith

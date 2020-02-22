@@ -193,10 +193,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '..${field.name} = ${field.name} ?? b.${field.name}',
       ',);',
       'factory $name.build([${name}Builder build]) => $name.from($modelName(), build);',
-      '$name.from($modelName source, [${name}Builder build]) {\n',
-      '_model = $modelName()',
-      for (final field in fields) '..${field.name} = source.${field.name}',
-      ';',
+      '$name.from($modelName source, [${name}Builder build]): _model = $modelName() {\n',
+      for (final field in fields)
+        '_model.${field.name} = source.${field.name};',
       'build?.call(_model);\n',
       for (final field in fields)
         if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
@@ -240,7 +239,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '\'If you just want an unchanged copy: You do not need one, just use \'',
       '\'the original.\',',
       ');',
-      '\nreturn $name.from(_model, update);',
+      '\nreturn $name.from(this, update);',
       '}\n',
 
       /// copyWith
@@ -248,9 +247,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '/// Creates a new instance of [$name], which is a copy of this with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.from(_model, (b) => b',
+        '}) => $name.from(this, (b) => b',
         for (final field in fields)
-          '..${field.name} = ${field.name} ?? _model.${field.name}',
+          '..${field.name} = ${field.name} ?? this.${field.name}',
         ');',
       ],
 
@@ -260,7 +259,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
-        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
+        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(this);\n',
       ],
       if (builtValueSerializer)
         'static Serializer<$name> get serializer => _\$${name}Serializer();',

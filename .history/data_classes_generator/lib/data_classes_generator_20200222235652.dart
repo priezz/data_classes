@@ -193,13 +193,12 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '..${field.name} = ${field.name} ?? b.${field.name}',
       ',);',
       'factory $name.build([${name}Builder build]) => $name.from($modelName(), build);',
-      '$name.from($modelName source, [${name}Builder build]) {\n',
-      '_model = $modelName()',
-      for (final field in fields) '..${field.name} = source.${field.name}',
-      ';',
-      'build?.call(_model);\n',
+      '$name.from($modelName source, [${name}Builder build]):',
+      fields.map((field) => '_${field.name} = source.${field.name}').join(','),
+      ' {\n',
+      'build?.call(this);\n',
       for (final field in fields)
-        if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
+        if (!_isNullable(field)) 'assert(_${field.name} != null);',
       '}\n',
 
       /// Deep equality stuff (== and hashCode).
@@ -209,13 +208,14 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       'bool operator ==(Object other) {',
       'final bool Function(dynamic e1, dynamic e2) eq = const DeepCollectionEquality().equals;\n',
       'return identical(this, other) || other is $modelName &&',
+
       fields
           .map(
             (field) =>
                 // field.type.displayName.startsWith('List')
                 // ? 'eq(${field.name}, other.${field.name})'
                 // : '${field.name} == other.${field.name}')
-                'eq(_model.${field.name}, other.${field.name})',
+                'eq(_${field.name}, other.${field.name})',
           )
           .join(' &&\n'),
       ';\n}\n',
@@ -240,7 +240,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '\'If you just want an unchanged copy: You do not need one, just use \'',
       '\'the original.\',',
       ');',
-      '\nreturn $name.from(_model, update);',
+      '\nreturn $name.from(this, update);',
       '}\n',
 
       /// copyWith
@@ -248,9 +248,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '/// Creates a new instance of [$name], which is a copy of this with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.from(_model, (b) => b',
+        '}) => $name.from(this, (b) => b',
         for (final field in fields)
-          '..${field.name} = ${field.name} ?? _model.${field.name}',
+          '..${field.name} = ${field.name} ?? this.${field.name}',
         ');',
       ],
 
@@ -260,7 +260,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
-        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
+        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(this);\n',
       ],
       if (builtValueSerializer)
         'static Serializer<$name> get serializer => _\$${name}Serializer();',
