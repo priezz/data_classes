@@ -203,7 +203,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         ');',
       ],
 
-      // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
       '$name.build(${name}Builder build) {\n',
       'build?.call(_model);\n',
       for (final field in fields)
@@ -280,7 +279,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '  @override',
         '  Iterable<Object> serialize(Serializers serializers, $name object,',
         '      {FullType specifiedType = FullType.unspecified}) {',
-        '    final json = _\$${modelName}ToJson(object._model);',
+        '    final json = _\$${modelName}ToJson(object);',
         '    final List<Object> result = [];',
         '    json.forEach((k, v) => result.addAll([k, v]));\n',
         '    return result;',
