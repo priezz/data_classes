@@ -210,7 +210,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       /// Deep equality stuff (== and hashCode).
       /// https://stackoverflow.com/questions/10404516/how-can-i-compare-lists-for-equality-in-dart
       '/// Checks if this [$name] is equal to the other one.',
-      'static bool _eq<T>(T e1, T e2) => ${immutable ? 'DefaultEquality<T>' : 'const DeepCollectionEquality'}().equals(e1, e2);\n'
+      'static bool _eq<T>(T e1, T e2) => const ${immutable ? 'DefaultEquality<T>' : 'DeepCollectionEquality'}().equals(e1, e2);\n'
           '@override',
       'bool operator ==(Object other) {',
       'return identical(this, other) || other is $modelName &&',
