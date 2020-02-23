@@ -170,7 +170,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
               ?.replaceAll('{@nodoc}', '') ??
           '',
       'class $name {',
-      'final $modelName _model = $modelName();\n',
+      '$modelName _model;\n',
 
       /// The field members.
       for (final field in fields) ...[
@@ -186,20 +186,15 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '@required ${_field(field, qualifiedImports)},',
       for (final field in fields.where((f) => !_isRequired(f)))
         '${_field(field, qualifiedImports)},',
-      '}) => $name.build((b) => b',
+      '}) => $name.from($modelName(), (b) => b',
       for (final field in fields)
         '..${field.name} = ${field.name} ?? b.${field.name}',
-      ');',
-
-      'factory $name.from($name source) => $name.build((b) => b',
+      ',);',
+      'factory $name.build([${name}Builder build]) => $name.from($modelName(), build);',
+      '$name.from($modelName source, [${name}Builder build]) {\n',
+      '_model = $modelName()',
       for (final field in fields) '..${field.name} = source.${field.name}',
-      ');',
-
-      'factory $name._fromModel($modelName source) => $name.build((b) => b',
-      for (final field in fields) '..${field.name} = source.${field.name}',
-      ');',
-
-      '$name.build(${name}Builder build) {\n',
+      ';',
       'build?.call(_model);\n',
       for (final field in fields)
         if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
@@ -236,29 +231,31 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copy
       '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) => $name.build((b) {',
-      'b',
-      for (final field in fields) '..${field.name} = _model.${field.name}',
-      ';',
-      'update?.call(b);',
-      '}',
-      ');\n',
+      '$name copy(${name}Builder update) {',
+      'assert(update != null,',
+      '\'You called $name.copy, \'',
+      '\'but did not provide a function for changing the attributes.\\n\'',
+      '\'If you just want an unchanged copy: You do not need one, just use \'',
+      '\'the original.\',',
+      ');',
+      '\nreturn $name.from(_model, update);',
+      '}\n',
 
       /// copyWith
       if (generateCopyWith) ...[
         '/// Creates a new instance of [$name], which is a copy of this with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.build((b) => b',
+        '}) => $name.from(_model, (b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
-        ',);\n',
+        ');',
       ],
 
       if (serialize) ...[
         /// fromJson
         'static $name fromJson(Map<dynamic, dynamic> json) =>',
-        '$name._fromModel(_\$${modelName}FromJson(json));\n',
+        '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
         'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
@@ -291,7 +288,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
         '    });\n',
-        '    return $name._fromModel(_\$${modelName}FromJson(json));',
+        '    return $name.from(_\$${modelName}FromJson(json));',
         '  }\n',
         '}',
       ]

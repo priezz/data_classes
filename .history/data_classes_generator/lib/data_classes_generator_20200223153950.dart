@@ -195,7 +195,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields) '..${field.name} = source.${field.name}',
       ');',
 
-      'factory $name._fromModel($modelName source) => $name.build((b) => b',
+      'factory $name.fromModel($modelName source) => $name.build((b) => b',
       for (final field in fields) '..${field.name} = source.${field.name}',
       ');',
 
@@ -236,29 +236,31 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copy
       '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) => $name.build((b) {',
-      'b',
-      for (final field in fields) '..${field.name} = _model.${field.name}',
-      ';',
-      'update?.call(b);',
-      '}',
-      ');\n',
+      '$name copy(${name}Builder update) {',
+      'assert(update != null,',
+      '\'You called $name.copy, \'',
+      '\'but did not provide a function for changing the attributes.\\n\'',
+      '\'If you just want an unchanged copy: You do not need one, just use \'',
+      '\'the original.\',',
+      ');',
+      '\nreturn $name.from(_model, update);',
+      '}\n',
 
       /// copyWith
       if (generateCopyWith) ...[
         '/// Creates a new instance of [$name], which is a copy of this with some changes',
         '$name copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.build((b) => b',
+        '}) => $name.from(_model, (b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
-        ',);\n',
+        ');',
       ],
 
       if (serialize) ...[
         /// fromJson
         'static $name fromJson(Map<dynamic, dynamic> json) =>',
-        '$name._fromModel(_\$${modelName}FromJson(json));\n',
+        '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
         'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
@@ -291,7 +293,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
         '    });\n',
-        '    return $name._fromModel(_\$${modelName}FromJson(json));',
+        '    return $name.from(_\$${modelName}FromJson(json));',
         '  }\n',
         '}',
       ]

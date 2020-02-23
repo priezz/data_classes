@@ -195,7 +195,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields) '..${field.name} = source.${field.name}',
       ');',
 
-      'factory $name._fromModel($modelName source) => $name.build((b) => b',
+      'factory $name.fromModel($modelName source) => $name.build((b) => b',
       for (final field in fields) '..${field.name} = source.${field.name}',
       ');',
 
@@ -236,7 +236,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copy
       '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) => $name.build((b) {',
+      '$name copy(${name}Builder update) => $name.build((b) {\n',
       'b',
       for (final field in fields) '..${field.name} = _model.${field.name}',
       ';',
@@ -252,13 +252,13 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '}) => $name.build((b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
-        ',);\n',
+        ');\n',
       ],
 
       if (serialize) ...[
         /// fromJson
         'static $name fromJson(Map<dynamic, dynamic> json) =>',
-        '$name._fromModel(_\$${modelName}FromJson(json));\n',
+        '$name.from(_\$${modelName}FromJson(json));\n',
 
         /// toJson
         'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
@@ -291,7 +291,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
         '    });\n',
-        '    return $name._fromModel(_\$${modelName}FromJson(json));',
+        '    return $name.from(_\$${modelName}FromJson(json));',
         '  }\n',
         '}',
       ]
