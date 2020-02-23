@@ -195,11 +195,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields) '..${field.name} = source.${field.name}',
       ');',
 
-      if (serialize || builtValueSerializer) ...[
+      if (serialize || builtValueSerializer)
         'factory $name._fromModel($modelName source) => $name.build((b) => b',
-        for (final field in fields) '..${field.name} = source.${field.name}',
-        ');',
-      ],
+      for (final field in fields) '..${field.name} = source.${field.name}',
+      ');',
 
       '$name.build(${name}Builder build) {\n',
       'build?.call(_model);\n',
