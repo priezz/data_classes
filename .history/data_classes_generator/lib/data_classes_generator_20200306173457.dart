@@ -261,7 +261,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         /// fromJson
         'factory $name.fromJson(Map<dynamic, dynamic> json) =>',
         '$name._fromModel(_\$${modelName}FromJson(json));\n',
-        'static $name deserialize(Map<dynamic, dynamic> json) =>',
+        'static $name fromJsonMethod(Map<dynamic, dynamic> json) =>',
         '$name._fromModel(_\$${modelName}FromJson(json));\n',
 
         /// toJson
