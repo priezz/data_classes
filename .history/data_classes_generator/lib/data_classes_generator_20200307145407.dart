@@ -165,7 +165,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '// ignore_for_file: argument_type_not_assignable, avoid_single_cascade_in_expression_statements, lines_longer_than_80_chars, implicit_dynamic_parameter, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first, void_checks',
 
       '/// {@nodoc}',
-      'typedef ${name}Builder = FutureOr<void> Function($modelName);',
+      'typedef ${name}Builder = void Function($modelName);',
 
       /// Start of the class.
       '/// {@category model}',
