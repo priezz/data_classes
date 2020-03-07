@@ -25,9 +25,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   ) {
     if (element is! ClassElement) {
       throw CodeGenError(
-        'You can only annotate classes with @GenerateDataClass(), but '
-        '"${element.name}" isn\'t a class.',
-      );
+          'You can only annotate classes with @GenerateDataClass(), but '
+          '"${element.name}" isn\'t a class.');
     }
     // if (!element.name.startsWith('_') || !element.name.endsWith(modelSuffix)) {
     if (!element.name.endsWith(modelSuffix)) {
@@ -43,10 +42,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     final ClassElement originalClass = element as ClassElement;
     // final name = originalClass.name;
-    final name = originalClass.name.substring(
-      originalClass.name[0] == '_' ? 1 : 0,
-      originalClass.name.length - modelSuffix.length,
-    );
+    final name = originalClass.name
+        .substring(0, originalClass.name.length - modelSuffix.length);
     final modelName = originalClass.name;
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable

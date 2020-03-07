@@ -43,10 +43,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     final ClassElement originalClass = element as ClassElement;
     // final name = originalClass.name;
-    final name = originalClass.name.substring(
-      originalClass.name[0] == '_' ? 1 : 0,
-      originalClass.name.length - modelSuffix.length,
-    );
+    final name = originalClass.name
+        .substring(0, originalClass.name.length - modelSuffix.length);
     final modelName = originalClass.name;
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
