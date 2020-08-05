@@ -6,7 +6,7 @@
 
 name: example
 description: Automatically generates immutable data classes for you based on a mutable "blueprint" class.
-version: 1.0.0
+version: 1.0.1
 author: Marcel Garus <marcel.garus@gmail.com>
 homepage: https://github.com/marcelgarus/flutter_data_classes
 
@@ -17,7 +17,7 @@ dependencies:
       path: data_classes
 
 dev_dependencies:
-  build_runner: ^1.7.2
+  build_runner: ^1.10.0
   data_classes_generator:
     git:
       url: https://github.com/priezz/data_classes.git

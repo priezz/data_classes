@@ -7,6 +7,6 @@ environment:
   sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  collection: ^1.14.11
-  json_serializable: ^3.2.5
-  meta: ^1.1.8
+  collection: ^1.14.13
+  json_serializable: ^3.3.0
+  meta: ^1.2.2
