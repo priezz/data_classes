@@ -1,6 +1,6 @@
 name: data_classes
 description: Automatically generates data classes for you based on a "blueprint" class.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/priezz/data_classes
 
 environment:
@@ -9,4 +9,4 @@ environment:
 dependencies:
   collection: ^1.14.13
   json_serializable: ^3.3.0
-  meta: ^1.2.2
+  meta: ^1.1.8
