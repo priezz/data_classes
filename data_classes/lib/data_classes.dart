@@ -1,23 +1,38 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 // export 'dart:async';
 export 'package:collection/collection.dart';
 export 'package:json_annotation/json_annotation.dart';
-export 'package:meta/meta.dart' show immutable, required;
+export 'package:meta/meta.dart';
+
+typedef ChangeListener = Future<void> Function(
+  String path, {
+  Object next,
+  Object prev,
+  Object Function() toJson,
+});
+typedef EqualityFn = bool Function(Object, Object);
 
 @immutable
 class GenerateDataClass {
   const GenerateDataClass({
     this.builtValueSerializer = false,
+    this.childrenListener,
     this.copyWith = true,
     this.immutable = false,
+    this.listener,
+    this.name,
     this.serialize = true,
   })  : assert(copyWith != null),
         assert(serialize != null);
 
   final bool builtValueSerializer;
+  final ChangeListener childrenListener;
   final bool copyWith;
   final bool immutable;
+  final String name;
+  final ChangeListener listener;
   final bool serialize;
 }
 
@@ -52,4 +67,33 @@ int hashList(Iterable<Object> arguments) {
   result = 0x1fffffff & (result + ((0x03ffffff & result) << 3));
   result = result ^ (result >> 11);
   return 0x1fffffff & (result + ((0x00003fff & result) << 15));
+}
+
+bool eqDeep<T>(T e1, T e2) =>
+    _compare(e1, e2, const DeepCollectionEquality().equals);
+bool eqDeepUnordered<T>(T e1, T e2) =>
+    _compare(e1, e2, const DeepCollectionEquality.unordered().equals);
+bool eqShallow<T>(T e1, T e2) =>
+    _compare(e1, e2, const DefaultEquality().equals);
+
+_compare<T>(T e1, T e2, EqualityFn equalityFn) => e1 is Map
+    ? _mapCompare(e1, e2 as Map, equalityFn)
+    // : equalityFn(e1, e2);
+    : e1 is Iterable
+        ? const DeepCollectionEquality().equals(e1, e2)
+        : e1 is double && e1.isNaN && e2 is double && e2.isNaN
+            ? true
+            : equalityFn(e1, e2);
+
+bool _mapCompare(Map e1, Map e2, EqualityFn equalityFn) {
+  bool keysEqual =
+      const DeepCollectionEquality.unordered().equals(e1.keys, e2.keys);
+  if (!keysEqual) return false;
+
+  final Set keys = {...e1.keys, ...e2.keys};
+  for (final key in keys) {
+    if (!_compare(e1[key], e2[key], equalityFn)) return false;
+  }
+
+  return true;
 }

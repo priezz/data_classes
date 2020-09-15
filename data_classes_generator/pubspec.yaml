@@ -1,6 +1,6 @@
 name: data_classes_generator
 description: Automatically generates data classes for you based on a "blueprint" class.
-version: 1.0.1
+version: 1.1.0
 homepage: https://github.com/priezz/data_classes
 
 environment:
@@ -9,13 +9,12 @@ environment:
 dependencies:
   analyzer: ^0.39.14
   build: ^1.3.0
-  # data_classes: ^3.0.0
-  # data_classes:
-  #   path: ../data_classes/
   data_classes:
-    git:
-      url: https://github.com/priezz/data_classes.git
-      path: data_classes
+    path: ../data_classes/
+  # data_classes:
+  #   git:
+  #     url: https://github.com/priezz/data_classes.git
+  #     path: data_classes
   source_gen: ^0.9.6
 
 dev_dependencies:

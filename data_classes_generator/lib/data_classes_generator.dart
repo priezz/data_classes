@@ -43,7 +43,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     final ClassElement originalClass = element as ClassElement;
     // final name = originalClass.name;
-    final name = originalClass.name.substring(
+    final String className = originalClass.name.substring(
       originalClass.name[0] == '_' ? 1 : 0,
       originalClass.name.length - modelSuffix.length,
     );
@@ -80,25 +80,45 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
     /// Check whether we should generate a `copyWith` method. Also ensure that
     /// there are no nullable fields.
-    final builtValueSerializer = originalClass.metadata
+    final bool builtValueSerializer = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
         .getField('builtValueSerializer')
         .toBoolValue();
-    final generateCopyWith = originalClass.metadata
+    final ExecutableElement childrenListener = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('childrenListener')
+        .toFunctionValue();
+    final bool generateCopyWith = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
         .getField('copyWith')
         .toBoolValue();
-    final immutable = originalClass.metadata
+    final bool immutable = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
         .getField('immutable')
         .toBoolValue();
-    final serialize = originalClass.metadata
+    // final ExecutableElement listener = originalClass.metadata
+    //     .firstWhere((annotation) =>
+    //         annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+    //     .constantValue
+    //     .getField('listener')
+    //     .toFunctionValue();
+    final String objectName = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('name')
+        .toStringValue();
+    final String objectNamePrefix =
+        objectName != null && objectName.isNotEmpty ? '$objectName.' : '';
+    final bool serialize = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
         .constantValue
@@ -159,14 +179,18 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     // final String nameUncapitalized =
     //     name.substring(0, 1).toLowerCase() + name.substring(1);
 
+    /// Equality stuff (== and hashCode).
+    /// https://stackoverflow.com/questions/10404516/how-can-i-compare-lists-for-equality-in-dart
+    final String equalityFn = immutable ? 'eqShallow' : 'eqDeep';
+
     /// Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
       '// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first',
 
       '/// {@nodoc}',
-      'typedef ${name}Builder = void Function($modelName);',
-      'typedef ${name}AsyncBuilder = Future<void> Function($modelName);',
+      'typedef ${className}Builder = void Function($modelName);',
+      'typedef ${className}AsyncBuilder = Future<void> Function($modelName);',
 
       /// Start of the class.
       '/// {@category model}',
@@ -174,9 +198,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
               ?.replaceAll('/// {@nodoc}\n', '')
               ?.replaceAll('{@nodoc}', '') ??
           '',
-      if (immutable)
-        '@immutable',
-      'class $name {',
+      if (immutable) '@immutable',
+      'class $className {',
       'final $modelName _model = $modelName();\n',
 
       /// The field members.
@@ -187,47 +210,44 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       ],
 
       /// The default constructor
-      '/// Creates a new [$name] with the given attributes',
-      'factory $name({',
+      '/// Creates a new [$className] with the given attributes',
+      'factory $className({',
       for (final field in fields.where((f) => _isRequired(f)))
         '@required ${_field(field, qualifiedImports)},',
       for (final field in fields.where((f) => !_isRequired(f)))
         '${_field(field, qualifiedImports)},',
-      '}) => $name.build((b) => b',
+      '}) => $className.build((b) => b',
       for (final field in fields)
         '..${field.name} = ${field.name} ?? b.${field.name}',
       ');',
 
-      'factory $name.from($name source) => $name.build((b) => b',
+      'factory $className.from($className source) => $className.build((b) => b',
       for (final field in fields)
         '..${field.name} = source.${field.name} ?? b.${field.name}',
       ');',
 
       if (serialize || builtValueSerializer) ...[
-        'factory $name.fromModel($modelName source) => $name.build((b) => b',
+        'factory $className.fromModel($modelName source) => $className.build((b) => b',
         for (final field in fields)
           '..${field.name} = source.${field.name} ?? b.${field.name}',
         ');',
       ],
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
-      '$name.build(${name}Builder build) {\n',
+      '$className.build(${className}Builder build) {\n',
       'build?.call(_model);\n',
       for (final field in fields)
         if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
       '}\n',
 
-      /// Deep equality stuff (== and hashCode).
-      /// https://stackoverflow.com/questions/10404516/how-can-i-compare-lists-for-equality-in-dart
-      '/// Checks if this [$name] is equal to the other one.',
-      'static bool _eq<T>(T e1, T e2) => ${immutable ? 'DefaultEquality<T>' : 'const DeepCollectionEquality'}().equals(e1, e2);\n'
-          '@override',
+      '/// Checks if this [$className] is equal to the other one.',
+      '@override',
       'bool operator ==(Object other) {',
-      'return identical(this, other) || other is $name &&',
+      'return identical(this, other) || other is $className &&',
       fields
           .map(
             (field) =>
-                '$name._eq<${_qualifiedType(field.type, qualifiedImports)}>(_model.${field.name}, other._model.${field.name})',
+                '$equalityFn(_model.${field.name}, other._model.${field.name})',
           )
           .join(' &&\n'),
       ';\n}\n',
@@ -237,34 +257,44 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       ']);\n',
 
       // toString converter.
-      '/// Converts this [$name] into a [String].',
+      '/// Converts this [$className] into a [String].',
       '@override',
-      "String toString() => \'$name(\\n'",
+      "String toString() => \'$className(\\n'",
       for (final field in fields)
         "'\${${field.name} != null ? '  ${field.name}: \$${field.name}\\n' : ''}'",
       "')';\n",
 
       /// copy
-      '/// Creates a new instance of [$name], which is a copy of this with some changes',
-      '$name copy(${name}Builder update) => $name.build((b) {',
+      '/// Creates a new instance of [$className], which is a copy of this with some changes',
+      '$className copy(${className}Builder update) => $className.build((b) {',
       'b',
       for (final field in fields) '..${field.name} = _model.${field.name}',
-      ';\n',
+      ';',
       'update?.call(b);',
+      if (childrenListener != null)
+        for (final field in fields)
+          'if (!$equalityFn(b.${field.name}, _model.${field.name})) {'
+              '${childrenListener.displayName}('
+              '\'${objectNamePrefix}${field.name}\','
+              'next: b.${field.name},'
+              'prev: _model.${field.name},'
+              'toJson: () => _\$${modelName}ToJson(${modelName}()..${field.name} = b.${field.name})[\'${field.name}\'],'
+              ');'
+              '}',
       '}',
       ');\n',
-      'Future<$name> copyAsync(${name}AsyncBuilder update) async {',
-      '  final $name result = copy(null);',
+      'Future<$className> copyAsync(${className}AsyncBuilder update) async {',
+      '  final $className result = copy(null);',
       '  await update?.call(result._model);\n',
       '  return result;',
       '}\n',
 
       /// copyWith
       if (generateCopyWith) ...[
-        '/// Creates a new instance of [$name], which is a copy of this with some changes',
-        '$name copyWith({',
+        '/// Creates a new instance of [$className], which is a copy of this with some changes',
+        '$className copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
-        '}) => $name.build((b) => b',
+        '}) => copy((b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
         ',);\n',
@@ -272,28 +302,28 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       if (serialize) ...[
         /// fromJson
-        'factory $name.fromJson(Map<dynamic, dynamic> json) =>',
-        '$name.fromModel(_\$${modelName}FromJson(json));\n',
-        'static $name deserialize(Map<dynamic, dynamic> json) =>',
-        '$name.fromJson(json);\n',
+        'factory $className.fromJson(Map<dynamic, dynamic> json) =>',
+        '$className.fromModel(_\$${modelName}FromJson(json));\n',
+        'static $className deserialize(Map<dynamic, dynamic> json) =>',
+        '$className.fromJson(json);\n',
 
         /// toJson
         'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
       ],
       if (builtValueSerializer)
-        'static Serializer<$name> get serializer => _\$${name}Serializer();',
+        'static Serializer<$className> get serializer => _\$${className}Serializer();',
 
       /// End of the class.
       '}\n',
 
       if (builtValueSerializer) ...[
-        'class _\$${name}Serializer implements StructuredSerializer<$name> {',
+        'class _\$${className}Serializer implements StructuredSerializer<$className> {',
         '  @override',
-        '  final Iterable<Type> types = const [$name];',
+        '  final Iterable<Type> types = const [$className];',
         '  @override',
-        '  final String wireName = \'$name\';\n',
+        '  final String wireName = \'$className\';\n',
         '  @override',
-        '  Iterable<Object> serialize(Serializers serializers, $name object,',
+        '  Iterable<Object> serialize(Serializers serializers, $className object,',
         '      {FullType specifiedType = FullType.unspecified}) {',
         '    final json = _\$${modelName}ToJson(object._model);',
         '    final List<Object> result = [];',
@@ -301,20 +331,28 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '    return result;',
         '  }\n',
         '  @override',
-        '  $name deserialize(Serializers serializers, Iterable<Object> serialized,',
+        '  $className deserialize(Serializers serializers, Iterable<Object> serialized,',
         '      {FullType specifiedType = FullType.unspecified}) {',
         '    final Map<dynamic, dynamic> json = {};',
         '    final serializedAsList = serialized.toList();',
         '    serializedAsList.asMap().forEach((i, key) {',
         '      if (i.isEven) json[key] = serializedAsList[i + 1];',
         '    });\n',
-        '    return $name.fromModel(_\$${modelName}FromJson(json));',
+        '    return $className.fromModel(_\$${modelName}FromJson(json));',
         '  }\n',
         '}',
       ]
     ].expand((line) => [line, '\n']));
 
     return buffer.toString();
+  }
+
+  /// Whether to ignore `childrenListener` or `listener` for the [field].
+  bool _ignoreListener(FieldElement field) {
+    assert(field != null);
+
+    return field.metadata
+        .any((annotation) => annotation.element.name == 'ignoreChanges');
   }
 
   /// Whether the [field] is nullable.
