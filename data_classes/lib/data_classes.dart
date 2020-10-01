@@ -81,18 +81,23 @@ _compare<T>(T e1, T e2, EqualityFn equalityFn) => e1 is Map
     // : equalityFn(e1, e2);
     : e1 is Iterable
         ? const DeepCollectionEquality().equals(e1, e2)
-        : e1 is double && e1.isNaN && e2 is double && e2.isNaN
+        : e1 is double &&
+                e2 is double &&
+                (e1?.isNaN ?? false) &&
+                (e2?.isNaN ?? false)
             ? true
             : equalityFn(e1, e2);
 
 bool _mapCompare(Map e1, Map e2, EqualityFn equalityFn) {
   bool keysEqual =
-      const DeepCollectionEquality.unordered().equals(e1.keys, e2.keys);
+      const DeepCollectionEquality.unordered().equals(e1?.keys, e2?.keys);
   if (!keysEqual) return false;
 
-  final Set keys = {...e1.keys, ...e2.keys};
+  final Set keys = {...e1?.keys, ...e2?.keys};
   for (final key in keys) {
-    if (!_compare(e1[key], e2[key], equalityFn)) return false;
+    if (!_compare(
+        e1 != null ? e1[key] : null, e2 != null ? e2[key] : null, equalityFn))
+      return false;
   }
 
   return true;
