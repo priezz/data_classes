@@ -78,9 +78,8 @@ bool eqShallow<T>(T e1, T e2) =>
 
 _compare<T>(T e1, T e2, EqualityFn equalityFn) => e1 is Map
     ? _mapCompare(e1, e2 as Map, equalityFn)
-    // : equalityFn(e1, e2);
     : e1 is Iterable
-        ? const DeepCollectionEquality().equals(e1, e2)
+        ? equalityFn(e1, e2)
         : e1 is double &&
                 e2 is double &&
                 (e1?.isNaN ?? false) &&

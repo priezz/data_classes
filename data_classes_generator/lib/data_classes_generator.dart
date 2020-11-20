@@ -256,7 +256,9 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       fields.map((field) => field.name).join(', '),
       ']);\n',
 
-      // toString converter.
+      '$modelName getModel() => _model;\n',
+
+      /// toString converter.
       '/// Converts this [$className] into a [String].',
       '@override',
       "String toString() => \'$className(\\n'",
