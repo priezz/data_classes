@@ -12,6 +12,8 @@ typedef ChangeListener = Future<void> Function(
   Object prev,
   Object Function() toJson,
 });
+typedef DataClassBuilder<T> = void Function(T);
+typedef DataClassAsyncBuilder<T> = Future<void> Function(T);
 typedef EqualityFn = bool Function(Object, Object);
 
 @immutable
@@ -46,6 +48,25 @@ class GenerateValueGetters {
 
   final bool usePrefix;
   final bool generateNegations;
+}
+
+abstract class DataClass<T extends DataClass<T, TModel>, TModel> {
+  TModel get _model;
+
+  T copy([DataClassBuilder<TModel> update]);
+
+  Future<T> copyAsync([DataClassAsyncBuilder<TModel> update]) async {
+    final T result = copy(null);
+    await update?.call((result)._model);
+
+    return result;
+  }
+
+  T copyWith() => null;
+
+  TModel getModel() => _model;
+
+  Map toJson() => null;
 }
 
 const String nullable = 'nullable';

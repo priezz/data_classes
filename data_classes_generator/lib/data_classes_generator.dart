@@ -188,10 +188,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     buffer.writeAll([
       '// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first',
 
-      '/// {@nodoc}',
-      'typedef ${className}Builder = void Function($modelName);',
-      'typedef ${className}AsyncBuilder = Future<void> Function($modelName);',
-
       /// Start of the class.
       '/// {@category model}',
       originalClass.documentationComment
@@ -199,8 +195,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
               ?.replaceAll('{@nodoc}', '') ??
           '',
       if (immutable) '@immutable',
-      'class $className {',
-      'final $modelName _model = $modelName();\n',
+      'class $className extends DataClass<$className, $modelName> {',
+      '@override final $modelName _model = $modelName();\n',
 
       /// The field members.
       for (final field in fields) ...[
@@ -234,7 +230,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       ],
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
-      '$className.build(${className}Builder build) {\n',
+      '$className.build(DataClassBuilder<$modelName> build) {\n',
       'build?.call(_model);\n',
       for (final field in fields)
         if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
@@ -256,8 +252,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       fields.map((field) => field.name).join(', '),
       ']);\n',
 
-      '$modelName getModel() => _model;\n',
-
       /// toString converter.
       '/// Converts this [$className] into a [String].',
       '@override',
@@ -268,7 +262,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
       /// copy
       '/// Creates a new instance of [$className], which is a copy of this with some changes',
-      '$className copy(${className}Builder update) => $className.build((b) {',
+      '@override $className copy([DataClassBuilder<$modelName> update]) => $className.build((b) {',
       'b',
       for (final field in fields) '..${field.name} = _model.${field.name}',
       ';',
@@ -285,16 +279,11 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
               '}',
       '}',
       ');\n',
-      'Future<$className> copyAsync(${className}AsyncBuilder update) async {',
-      '  final $className result = copy(null);',
-      '  await update?.call(result._model);\n',
-      '  return result;',
-      '}\n',
 
       /// copyWith
       if (generateCopyWith) ...[
         '/// Creates a new instance of [$className], which is a copy of this with some changes',
-        '$className copyWith({',
+        '@override $className copyWith({',
         for (final field in fields) '${_field(field, qualifiedImports)},',
         '}) => copy((b) => b',
         for (final field in fields)
@@ -310,7 +299,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         '$className.fromJson(json);\n',
 
         /// toJson
-        'Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
+        '@override Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
       ],
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
