@@ -267,16 +267,20 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       for (final field in fields) '..${field.name} = _model.${field.name}',
       ';',
       'update?.call(b);',
+      if (childrenListener != null) 'Future.wait([',
       if (childrenListener != null)
         for (final field in fields)
-          'if (!$equalityFn(b.${field.name}, _model.${field.name})) {'
-              '${childrenListener.displayName}('
+          '() async {'
+              'if (!$equalityFn(b.${field.name}, _model.${field.name})) {'
+              'await ${childrenListener.displayName}('
               '\'${objectNamePrefix}${field.name}\','
               'next: b.${field.name},'
               'prev: _model.${field.name},'
               'toJson: () => _\$${modelName}ToJson(${modelName}()..${field.name} = b.${field.name})[\'${field.name}\'],'
               ');'
-              '}',
+              '}'
+              '}(),',
+      if (childrenListener != null) ']);',
       '}',
       ');\n',
 
@@ -303,6 +307,8 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       ],
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
+
+      '$modelName get thisModel => _model;',
 
       /// End of the class.
       '}\n',

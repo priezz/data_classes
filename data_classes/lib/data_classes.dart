@@ -56,15 +56,15 @@ abstract class DataClass<T extends DataClass<T, TModel>, TModel> {
   T copy([DataClassBuilder<TModel> update]);
 
   Future<T> copyAsync([DataClassAsyncBuilder<TModel> update]) async {
-    final T result = copy(null);
-    await update?.call((result)._model);
+    final T result = copy();
+    await update?.call(result._model);
 
     return result;
   }
 
   T copyWith() => null;
 
-  TModel getModel() => _model;
+  TModel get thisModel => null;
 
   Map toJson() => null;
 }
