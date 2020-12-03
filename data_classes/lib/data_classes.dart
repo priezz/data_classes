@@ -22,6 +22,7 @@ class GenerateDataClass {
     this.builtValueSerializer = false,
     this.childrenListener,
     this.copyWith = true,
+    this.getName,
     this.immutable = false,
     this.listener,
     this.name,
@@ -32,6 +33,7 @@ class GenerateDataClass {
   final bool builtValueSerializer;
   final ChangeListener childrenListener;
   final bool copyWith;
+  final Function getName;
   final bool immutable;
   final String name;
   final ChangeListener listener;

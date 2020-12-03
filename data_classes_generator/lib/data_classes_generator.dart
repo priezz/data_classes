@@ -116,8 +116,17 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
         .constantValue
         .getField('name')
         .toStringValue();
-    final String objectNamePrefix =
-        objectName != null && objectName.isNotEmpty ? '$objectName.' : '';
+    final ExecutableElement objectNameGetter = originalClass.metadata
+        .firstWhere((annotation) =>
+            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+        .constantValue
+        .getField('getName')
+        .toFunctionValue();
+    final String objectNamePrefix = objectNameGetter != null
+        ? '\$\{${objectNameGetter.displayName}(b)\}.'
+        : objectName != null && objectName.isNotEmpty
+            ? '$objectName.'
+            : '';
     final bool serialize = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
