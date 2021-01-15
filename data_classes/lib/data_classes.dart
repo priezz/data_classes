@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 // export 'dart:async';
-export 'package:collection/collection.dart';
+export 'package:collection/collection.dart' hide IterableExtension;
 export 'package:json_annotation/json_annotation.dart';
 export 'package:meta/meta.dart';
 
