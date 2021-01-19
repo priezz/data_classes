@@ -419,6 +419,6 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final prefixOrNull = qualifiedImports[typeLibrary?.identifier];
     final prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
 
-    return '$prefix$type';
+    return '$prefix${type.toString().replaceAll('*', '')}';
   }
 }
