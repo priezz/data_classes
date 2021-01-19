@@ -10,10 +10,10 @@ dependencies:
   analyzer: ^0.40.6
   build: ^1.6.1
   data_classes:
-    path: ../data_classes/
-    # git:
-    #   url: https://github.com/priezz/data_classes.git
-    #   path: data_classes
+    # path: ../data_classes/
+    git:
+      url: https://github.com/priezz/data_classes.git
+      path: data_classes
   source_gen: ^0.9.10+1
 
 dev_dependencies:
