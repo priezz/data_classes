@@ -83,25 +83,25 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final bool builtValueSerializer = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('builtValueSerializer')
         .toBoolValue();
     final ExecutableElement childrenListener = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('childrenListener')
         .toFunctionValue();
     final bool generateCopyWith = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('copyWith')
         .toBoolValue();
     final bool immutable = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('immutable')
         .toBoolValue();
     // final ExecutableElement listener = originalClass.metadata
@@ -113,13 +113,13 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final String objectName = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('name')
         .toStringValue();
     final ExecutableElement objectNameGetter = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('getName')
         .toFunctionValue();
     final String objectNamePrefix = objectNameGetter != null
@@ -130,7 +130,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     final bool serialize = originalClass.metadata
         .firstWhere((annotation) =>
             annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .constantValue
+        .computeConstantValue()
         .getField('serialize')
         .toBoolValue();
 
@@ -356,12 +356,12 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   }
 
   /// Whether to ignore `childrenListener` or `listener` for the [field].
-  bool _ignoreListener(FieldElement field) {
-    assert(field != null);
+  // bool _ignoreListener(FieldElement field) {
+  //   assert(field != null);
 
-    return field.metadata
-        .any((annotation) => annotation.element.name == 'ignoreChanges');
-  }
+  //   return field.metadata
+  //       .any((annotation) => annotation.element.name == 'ignoreChanges');
+  // }
 
   /// Whether the [field] is nullable.
   bool _isNullable(FieldElement field) {
@@ -375,7 +375,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   bool _isRequired(FieldElement field) {
     assert(field != null);
 
-    return !_isNullable(field) && field.initializer == null;
+    return !_isNullable(field) && !field.hasInitializer;
   }
 
   /// Capitalizes the first letter of a string.
