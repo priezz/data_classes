@@ -1,8 +1,13 @@
+import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:build/src/builder/build_step.dart';
+// import 'package:collection/collection.dart' show IterableExtension;
+// ignore: import_of_legacy_library_into_null_safe
 import 'package:source_gen/source_gen.dart';
+
 import 'package:data_classes/data_classes.dart';
 
 const modelSuffix = 'Model';
@@ -16,7 +21,7 @@ class CodeGenError extends Error {
   String toString() => message;
 }
 
-class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
+class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   @override
   generateForAnnotatedElement(
     Element element,
@@ -25,14 +30,14 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   ) {
     if (element is! ClassElement) {
       throw CodeGenError(
-        'You can only annotate classes with @GenerateDataClass(), but '
+        'You can only annotate classes with @DataClass(), but '
         '"${element.name}" isn\'t a class.',
       );
     }
     // if (!element.name.startsWith('_') || !element.name.endsWith(modelSuffix)) {
     if (!element.name.endsWith(modelSuffix)) {
       throw CodeGenError(
-        'The names of classes annotated with @GenerateDataClass() should '
+        'The names of classes annotated with @DataClass() should '
         'end with "Model", for example ${element.name}Model. '
         'The generated class (in that case, ${element.name}) will then get '
         'automatically generated for you by running "pub run build_runner '
@@ -41,7 +46,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       );
     }
 
-    final ClassElement originalClass = element as ClassElement;
+    final ClassElement originalClass = element;
     // final name = originalClass.name;
     final String className = originalClass.name.substring(
       originalClass.name[0] == '_' ? 1 : 0,
@@ -56,7 +61,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
     Map<String, String> qualifiedImports = {
       for (final import in originalClass.library.imports)
         if (import.prefix != null)
-          import.importedLibrary.identifier: import.prefix.name,
+          import.importedLibrary!.identifier: import.prefix!.name,
     };
 
     /// Collect all the fields and getters from the original class.
@@ -78,112 +83,88 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       fields.add(field);
     }
 
-    /// Check whether we should generate a `copyWith` method. Also ensure that
-    /// there are no nullable fields.
-    final bool builtValueSerializer = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('builtValueSerializer')
-        .toBoolValue();
-    final ExecutableElement childrenListener = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('childrenListener')
-        .toFunctionValue();
-    final bool generateCopyWith = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('copyWith')
-        .toBoolValue();
-    final bool immutable = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('immutable')
-        .toBoolValue();
+    final DartObject classAnnotation = originalClass.metadata
+        .firstWhere(
+          (annotation) =>
+              annotation.element?.enclosingElement?.name == 'DataClass',
+        )
+        .computeConstantValue()!;
+
+    /// Check which methods should we generate
+    final bool builtValueSerializer =
+        classAnnotation.getField('builtValueSerializer')!.toBoolValue()!;
+    final ExecutableElement? childrenListener =
+        classAnnotation.getField('childrenListener')?.toFunctionValue();
+    final bool generateCopyWith =
+        classAnnotation.getField('copyWith')!.toBoolValue()!;
+    final bool immutable =
+        classAnnotation.getField('immutable')!.toBoolValue()!;
     // final ExecutableElement listener = originalClass.metadata
     //     .firstWhere((annotation) =>
-    //         annotation.element?.enclosingElement?.name == 'GenerateDataClass')
+    //         annotation.element?.enclosingElement?.name == 'DataClass')
     //     .constantValue
     //     .getField('listener')
     //     .toFunctionValue();
-    final String objectName = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('name')
-        .toStringValue();
-    final ExecutableElement objectNameGetter = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('getName')
-        .toFunctionValue();
+    final String? objectName =
+        classAnnotation.getField('name')?.toStringValue();
+    final ExecutableElement? objectNameGetter =
+        classAnnotation.getField('getName')?.toFunctionValue();
     final String objectNamePrefix = objectNameGetter != null
         ? '\$\{${objectNameGetter.displayName}(prev)\}.'
         : (objectName?.isNotEmpty ?? false)
             ? '$objectName.'
             : '';
-    final bool serialize = originalClass.metadata
-        .firstWhere((annotation) =>
-            annotation.element?.enclosingElement?.name == 'GenerateDataClass')
-        .computeConstantValue()
-        .getField('serialize')
-        .toBoolValue();
+    final bool serialize =
+        classAnnotation.getField('serialize')!.toBoolValue()!;
 
-    // Users can annotate fields that hold an enum value with
-    // `@GenerateValueGetters()` to generate value getters.
-    // Here, we prepare a map from the getter name to its code content.
-    final valueGetters = <String, String>{};
-    for (final field in fields) {
-      final annotation = field.metadata
-          .firstWhere(
-              (annotation) =>
-                  annotation.element?.enclosingElement?.name ==
-                  'GenerateValueGetters',
-              orElse: () => null)
-          ?.computeConstantValue();
-      if (annotation == null) continue;
+    // /// Users can annotate fields that hold an enum value with
+    // /// `@GenerateValueGetters()` to generate value getters.
+    // /// Here, we prepare a map from the getter name to its code content.
+    // final valueGetters = <String, String>{};
+    // for (final field in fields) {
+    //   final annotation = field.metadata
+    //       .firstWhereOrNull((annotation) =>
+    //           annotation.element?.enclosingElement?.name ==
+    //           'GenerateValueGetters')
+    //       ?.computeConstantValue();
+    //   if (annotation == null) continue;
 
-      final usePrefix = annotation.getField('usePrefix').toBoolValue();
-      final generateNegations =
-          annotation.getField('generateNegations').toBoolValue();
+    //   final usePrefix = annotation.getField('usePrefix')!.toBoolValue()!;
+    //   final generateNegations =
+    //       annotation.getField('generateNegations')!.toBoolValue();
 
-      final enumClass = field.type.element as ClassElement;
-      if (enumClass?.isEnum == false) {
-        throw CodeGenError('You annotated the $modelName\'s ${field.name} with '
-            '@GenerateValueGetters(), but that\'s of '
-            '${enumClass == null ? 'an unknown type' : 'the type ${enumClass.name}'}, '
-            'which is not an enum. @GenerateValueGetters() should only be '
-            'used on fields of an enum type.');
-      }
+    //   final enumClass = field.type.element as ClassElement;
+    //   if (!enumClass.isEnum) {
+    //     throw CodeGenError('You annotated the $modelName\'s ${field.name} with '
+    //         '@GenerateValueGetters(), but that\'s of '
+    //         'the type ${enumClass.name}, '
+    //         'which is not an enum. @GenerateValueGetters() should only be '
+    //         'used on fields of an enum type.');
+    //   }
 
-      final prefix = 'is${usePrefix ? _capitalize(field.name) : ''}';
-      final enumValues = enumClass.fields
-          .where((field) => !['values', 'index'].contains(field.name));
+    //   final prefix = 'is${usePrefix ? _capitalize(field.name) : ''}';
+    //   final enumValues = enumClass.fields
+    //       .where((field) => !['values', 'index'].contains(field.name));
 
-      for (final value in enumValues) {
-        for (final negate in generateNegations ? [false, true] : [false]) {
-          final getter =
-              '$prefix${negate ? 'Not' : ''}${_capitalize(value.name)}';
-          final content = 'this.${field.name} ${negate ? '!=' : '=='} '
-              '${_qualifiedType(value.type, qualifiedImports)}.${value.name}';
+    //   for (final value in enumValues) {
+    //     for (final negate in generateNegations! ? [false, true] : [false]) {
+    //       final getter =
+    //           '$prefix${negate ? 'Not' : ''}${_capitalize(value.name)}';
+    //       final content = 'this.${field.name} ${negate ? '!=' : '=='} '
+    //           '${_qualifiedType(value.type, qualifiedImports)}.${value.name}';
 
-          if (valueGetters.containsKey(getter)) {
-            throw CodeGenError(
-                'A conflict occurred while generating value getters. The two '
-                'conflicting value getters of the $modelName class are:\n'
-                '- $getter, which tests if ${valueGetters[getter]}\n'
-                '- $getter, which tests if $content');
-          }
+    //       if (valueGetters.containsKey(getter)) {
+    //         throw CodeGenError(
+    //             'A conflict occurred while generating value getters. The two '
+    //             'conflicting value getters of the $modelName class are:\n'
+    //             '- $getter, which tests if ${valueGetters[getter]}\n'
+    //             '- $getter, which tests if $content');
+    //       }
 
-          valueGetters[getter] = content;
-        }
-      }
-    }
+    //       valueGetters[getter] = content;
+    //     }
+    //   }
+    // }
 
     // final String nameUncapitalized =
     //     name.substring(0, 1).toLowerCase() + name.substring(1);
@@ -201,10 +182,10 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '/// {@category model}',
       originalClass.documentationComment
               ?.replaceAll('/// {@nodoc}\n', '')
-              ?.replaceAll('{@nodoc}', '') ??
+              .replaceAll('{@nodoc}', '') ??
           '',
       if (immutable) '@immutable',
-      'class $className extends DataClass<$className, $modelName> {',
+      'class $className extends IDataClass<$className, $modelName> {',
       '@override final $modelName _model = $modelName();\n',
 
       /// The field members.
@@ -218,7 +199,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
       '/// Creates a new [$className] with the given attributes',
       'factory $className({',
       for (final field in fields.where((f) => _isRequired(f)))
-        '@required ${_field(field, qualifiedImports)},',
+        'required ${_field(field, qualifiedImports)},',
       for (final field in fields.where((f) => !_isRequired(f)))
         '${_field(field, qualifiedImports)},',
       '}) => $className.build((b) => b',
@@ -363,35 +344,26 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
   //       .any((annotation) => annotation.element.name == 'ignoreChanges');
   // }
 
-  /// Whether the [field] is nullable.
-  bool _isNullable(FieldElement field) {
-    assert(field != null);
+  /// Whether the [field] is nullable
+  bool _isNullable(FieldElement field) =>
+      field.type.nullabilitySuffix == NullabilitySuffix.question;
 
-    return field.metadata
-        .any((annotation) => annotation.element.name == nullable);
-  }
+  /// Whether the [field] is required
+  bool _isRequired(FieldElement field) =>
+      !_isNullable(field) && !field.hasInitializer;
 
-  /// Whether the [field] is nullable.
-  bool _isRequired(FieldElement field) {
-    assert(field != null);
-
-    return !_isNullable(field) && !field.hasInitializer;
-  }
-
-  /// Capitalizes the first letter of a string.
-  String _capitalize(String string) {
-    assert(string.isNotEmpty);
-    return string[0].toUpperCase() + string.substring(1);
-  }
+  // /// Capitalizes the first letter of a string.
+  // String _capitalize(String string) {
+  //   assert(string.isNotEmpty);
+  //   return string[0].toUpperCase() + string.substring(1);
+  // }
 
   /// Turns the [field] into type and the field name, separated by a space.
   String _field(
     FieldElement field,
     Map<String, String> qualifiedImports,
-  ) {
-    assert(field != null && qualifiedImports != null);
-    return '${_qualifiedType(field.type, qualifiedImports)} ${field.name}';
-  }
+  ) =>
+      '${_qualifiedType(field.type, qualifiedImports)} ${field.name}';
 
   // String _fieldDeclaration(
   //   FieldElement field,
@@ -415,7 +387,7 @@ class DataClassGenerator extends GeneratorForAnnotation<GenerateDataClass> {
 
   /// Turns the [type] into a type with prefix.
   String _qualifiedType(DartType type, Map<String, String> qualifiedImports) {
-    final typeLibrary = type.element.library;
+    final typeLibrary = type.element!.library;
     final prefixOrNull = qualifiedImports[typeLibrary?.identifier];
     final prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
 
