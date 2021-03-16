@@ -49,7 +49,7 @@ class DataClass {
 // }
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
-  TModel get _model;
+  late TModel _model;
 
   T copy([DataClassBuilder<TModel>? update]);
 
@@ -60,9 +60,9 @@ abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
     return result;
   }
 
-  T copyWith();
+  T copyWith() => copy();
   TModel get thisModel;
-  Map toJson();
+  Map toJson() => {};
 }
 
 // const String nullable = 'nullable';
@@ -96,10 +96,7 @@ _compare<T>(T? e1, T? e2, EqualityFn equalityFn) => e1 is Map
     ? _mapCompare(e1, e2 as Map, equalityFn)
     : e1 is Iterable
         ? equalityFn(e1, e2)
-        : e1 is double &&
-                e2 is double &&
-                (e1?.isNaN ?? false) &&
-                (e2?.isNaN ?? false)
+        : e1 is double && e2 is double && e1.isNaN && e2.isNaN
             ? true
             : equalityFn(e1, e2);
 

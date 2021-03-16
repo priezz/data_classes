@@ -65,22 +65,26 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     };
 
     /// Collect all the fields and getters from the original class.
-    final fields = <FieldElement>{};
+    final Set<FieldElement> fields = {};
 
     for (final field in originalClass.fields) {
-      // TODO: Create a flag to disallow dynamic types
-      // if (field.type.toString().contains('dynamic')) {
-      //   throw CodeGenError(
-      //     'Dynamic types are not allowed.\n'
-      //     'Fix:\n'
-      //     '  class $name$modelClassSuffix {\n'
-      //     '    ...\n'
-      //     '    <SpecificType> ${field.name};'
-      //     '    ...\n'
-      //     '  }',
-      //   );
-      // }
+      if (field.type.toString() == 'dynamic') {
+        throw CodeGenError(
+          'Dynamic types are not allowed.\n'
+          'Fix:\n'
+          '  class $modelName {\n'
+          '    ...\n'
+          '    Object? ${field.name};\n'
+          '    ...\n'
+          '  }',
+        );
+      }
       fields.add(field);
+    }
+    final List<FieldElement> requiredFields = [];
+    final List<FieldElement> nonRequiredFields = [];
+    for (final field in fields) {
+      (_isRequired(field) ? requiredFields : nonRequiredFields).add(field);
     }
 
     final DartObject classAnnotation = originalClass.metadata
@@ -176,7 +180,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     /// Actually generate the class.
     final buffer = StringBuffer();
     buffer.writeAll([
-      '// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first',
+      '// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, dead_null_aware_expression, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first',
 
       /// Start of the class.
       '/// {@category model}',
@@ -198,24 +202,25 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       /// The default constructor
       '/// Creates a new [$className] with the given attributes',
       'factory $className({',
-      for (final field in fields.where((f) => _isRequired(f)))
+      for (final field in requiredFields)
         'required ${_field(field, qualifiedImports)},',
-      for (final field in fields.where((f) => !_isRequired(f)))
-        '${_field(field, qualifiedImports)},',
+      for (final field in nonRequiredFields)
+        '${_field(field, qualifiedImports, required: false)},',
       '}) => $className.build((b) => b',
-      for (final field in fields)
+      for (final field in requiredFields) '..${field.name} = ${field.name}',
+      for (final field in nonRequiredFields)
         '..${field.name} = ${field.name} ?? b.${field.name}',
-      ');\n',
+      ',);\n',
 
       'factory $className.from($className source) => $className.build((b) => _modelCopy(source._model, b));\n',
 
       'factory $className.fromModel($modelName source) => $className.build((b) => _modelCopy(source, b));\n',
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
-      '$className.build(DataClassBuilder<$modelName> build) {\n',
+      '$className.build(DataClassBuilder<$modelName>? build) {\n',
       'build?.call(_model);\n',
-      for (final field in fields)
-        if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
+      // for (final field in fields)
+      //   if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
       '}\n',
 
       '/// Checks if this [$className] is equal to the other one.',
@@ -231,7 +236,10 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       ';\n',
       '@override',
       'int get hashCode => hashList([',
-      fields.map((field) => field.name).join(', '),
+      for (final field in fields)
+        _isNullable(field)
+            ? 'if (${field.name} != null) ${field.name}!,'
+            : '${field.name},',
       ']);\n',
 
       /// toString converter.
@@ -239,12 +247,14 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override',
       "String toString() => \'$className(\\n'",
       for (final field in fields)
-        "'\${${field.name} != null ? '  ${field.name}: \$${field.name}\\n' : ''}'",
+        _isNullable(field)
+            ? "'\${${field.name} != null ? '  ${field.name}: \${${field.name}!}\\n' : ''}'"
+            : "'  ${field.name}: \$${field.name}\\n'",
       "')';\n",
 
       /// copy
       '/// Creates a new instance of [$className], which is a copy of this with some changes',
-      '@override $className copy([DataClassBuilder<$modelName> update]) => $className.build((builder) {',
+      '@override $className copy([DataClassBuilder<$modelName>? update]) => $className.build((builder) {',
       '  _modelCopy(_model, builder);',
       '  update?.call(builder);',
       if (childrenListener != null) '  _notifyOnPropChanges(_model, builder);',
@@ -254,7 +264,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (generateCopyWith) ...[
         '/// Creates a new instance of [$className], which is a copy of this with some changes',
         '@override $className copyWith({',
-        for (final field in fields) '${_field(field, qualifiedImports)},',
+        for (final field in fields)
+          '${_field(field, qualifiedImports, required: false)},',
         '}) => copy((b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
@@ -274,7 +285,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
 
-      '$modelName get thisModel => _model;\n',
+      '@override $modelName get thisModel => _model;\n',
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
       for (final field in fields)
@@ -361,9 +372,10 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   /// Turns the [field] into type and the field name, separated by a space.
   String _field(
     FieldElement field,
-    Map<String, String> qualifiedImports,
-  ) =>
-      '${_qualifiedType(field.type, qualifiedImports)} ${field.name}';
+    Map<String, String> qualifiedImports, {
+    bool required = true,
+  }) =>
+      '${_qualifiedType(field.type, qualifiedImports)}${!required && field.type.nullabilitySuffix != NullabilitySuffix.question ? '?' : ''} ${field.name}';
 
   // String _fieldDeclaration(
   //   FieldElement field,
