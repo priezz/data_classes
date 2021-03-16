@@ -10,7 +10,7 @@ typedef ChangeListener = Future<void> Function(
   String path, {
   Object? next,
   Object? prev,
-  Object Function()? toJson,
+  dynamic Function()? toJson,
 });
 typedef DataClassBuilder<T> = void Function(T);
 typedef DataClassAsyncBuilder<T> = Future<void> Function(T);
