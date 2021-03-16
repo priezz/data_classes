@@ -298,7 +298,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '    final prevValue = get(prev);',
         '    final nextValue = get(next);',
         '    if (!eqShallow(nextValue, prevValue)) {',
-        '      await $childrenListener(',
+        '      await ${childrenListener.name}(',
         "        '$objectNamePrefix\$name',",
         '        next: nextValue,',
         '        prev: prevValue,',
