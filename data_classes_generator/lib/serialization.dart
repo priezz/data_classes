@@ -39,6 +39,7 @@ List<String> _generateLeafDeserializer(
   DartType type,
   String accessor, {
   bool forceUnwrap = false,
+  bool sourceIsAlwaysString = false,
 }) {
   assert(
     type.isLeaf,
@@ -53,15 +54,23 @@ List<String> _generateLeafDeserializer(
   final suffix = type.isRequired && forceUnwrap ? '!' : '';
 
   return [
-    if (type.hasFromJson) ...[
-      if (!type.isRequired) '$accessor == null ? null : ',
-      '$typeStr.fromJson($accessor ?? {})',
-    ] else if (type.isEnum)
-      "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
-    else if (type.isDateTime)
-      "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
-    else
-      'castOrNull<$typeStr>($accessor)$suffix',
+    if (sourceIsAlwaysString &&
+        (type.isDartCoreInt || type.isDartCoreDouble)) ...[
+      if (type.isDartCoreInt)
+        "int.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      else if (type.isDartCoreDouble)
+        "double.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+    ] else ...[
+      if (type.hasFromJson) ...[
+        if (!type.isRequired) '$accessor == null ? null : ',
+        '$typeStr.fromJson($accessor ?? {})',
+      ] else if (type.isEnum)
+        "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
+      else if (type.isDateTime)
+        "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      else
+        'castOrNull<$typeStr>($accessor)$suffix',
+    ],
   ];
 }
 
@@ -159,7 +168,11 @@ List<String> _generateMapDeserializer(
     if (!type.isRequired && !addNullCheck) ' $fieldGetter == null ? null : ',
     'Map.fromEntries($fieldCall.entries.mapNotNull((e){',
     'final key = ',
-    ..._generateLeafDeserializer(keyType, 'e.key'),
+    ..._generateLeafDeserializer(
+      keyType,
+      'e.key',
+      sourceIsAlwaysString: true,
+    ),
     ';',
     if (valueType.isLeaf) ...[
       'final value = ',
@@ -211,6 +224,7 @@ extension on DartType {
       isDartCoreInt ||
       isDartCoreString ||
       isDateTime ||
+      isEnum ||
       hasFromJson;
 
   bool get isRequired => nullabilitySuffix != NullabilitySuffix.question;

@@ -2,12 +2,32 @@
 import 'package:data_classes/data_classes.dart';
 import 'package:data_classes/serializers.dart';
 
+// ignore: unused_import
 import 'models_helpers.dart';
 export 'models_helpers.dart';
 
 part 'main.g.dart';
 
 void main() {
+  final fruit = Fruit(
+    color: Color.green,
+    iterableNotNullable: [
+      {
+        ['not', 'nullable']
+      }
+    ],
+    mapNotNullable: {
+      2: ['map', 'mapo']
+    },
+    big: false,
+    timeStamp: DateTime.now(),
+  );
+  final json = fruit.toJson();
+  final fruitNew = Fruit.fromJson(json);
+  print(fruit);
+  print('______');
+  print(fruitNew);
+  print(fruit.toString() == fruitNew.toString());
 }
 
 enum Color { red, yellow, green, brown, orange }
@@ -39,7 +59,6 @@ class FruitModel {
   late DateTime timeStamp;
 }
 
-@JsonSerializable()
 @DataClass(immutable: true)
 class SeedModel {
   bool big = false;

@@ -351,7 +351,12 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         'final model = $modelName();\n',
         for (final field in fields) ..._generateFieldDeserializer(field),
         'return model;',
-        '}'
+        '}',
+        '\n\n',
+        'Map<String, dynamic> _\$${modelName}ToJson($modelName instance) =>',
+        'serializeToJson({',
+        for (final field in fields) "'${field.name}': instance.${field.name},",
+        '});',
       ]
     ].expand((line) => [line, '\n']));
 
