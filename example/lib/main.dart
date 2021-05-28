@@ -57,7 +57,16 @@ class FruitModel {
   Seed? optionalSeed;
   Map<Color, Iterable<String>> colorsMap = {};
   late DateTime timeStamp;
+
+  @Serializable(
+    fromJson: customFromJson,
+    toJson: customToJson,
+  )
+  late String custom;
 }
+
+Map<String, dynamic> customToJson(dynamic custom) => {'custom': 'custom!'};
+String customFromJson(Map<dynamic, dynamic> json) => json['custom'] ?? 'supsup';
 
 @DataClass(immutable: true)
 class SeedModel {

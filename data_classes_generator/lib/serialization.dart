@@ -3,9 +3,20 @@ part of 'data_classes_generator.dart';
 List<String> _generateFieldDeserializer(FieldElement field) {
   final fieldName = field.displayName;
   final accessor = "json['$fieldName']";
+  final customDeserializer = field.metadata
+      .firstOrNullWhere(
+        (annotation) =>
+            annotation.element?.enclosingElement?.name == 'Serializable',
+      )
+      ?.computeConstantValue()
+      ?.getField('fromJson')
+      ?.toFunctionValue()
+      ?.displayName;
 
   return [
-    if (field.type.isLeaf) ...[
+    if (customDeserializer != null)
+      'model.${field.displayName} = $customDeserializer(json);'
+    else if (field.type.isLeaf) ...[
       'final ${field.displayName} = ',
       ..._generateLeafDeserializer(
         field.type,

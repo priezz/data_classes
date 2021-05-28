@@ -41,6 +41,16 @@ class DataClass {
   final bool serialize;
 }
 
+@immutable
+class Serializable {
+  const Serializable({
+    this.fromJson,
+    this.toJson,
+  });
+  final dynamic Function(Map<dynamic, dynamic> json)? fromJson;
+  final Map<String, dynamic> Function(dynamic)? toJson;
+}
+
 // @immutable
 // class GenerateValueGetters {
 //   const GenerateValueGetters({
@@ -118,7 +128,6 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
 
   return true;
 }
-
 
 /// Get the enum value from a string [key].
 ///

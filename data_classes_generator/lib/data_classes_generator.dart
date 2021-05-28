@@ -355,12 +355,29 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '\n\n',
         'Map<String, dynamic> _\$${modelName}ToJson($modelName instance) =>',
         'serializeToJson({',
-        for (final field in fields) "'${field.name}': instance.${field.name},",
+        for (final field in fields) _generateFieldSerializer(field),
         '});',
       ]
     ].expand((line) => [line, '\n']));
 
     return buffer.toString();
+  }
+
+  String _generateFieldSerializer(FieldElement field) {
+    final customSerializer = field.metadata
+        .firstOrNullWhere(
+          (annotation) =>
+              annotation.element?.enclosingElement?.name == 'Serializable',
+        )
+        ?.computeConstantValue()
+        ?.getField('toJson')
+        ?.toFunctionValue()
+        ?.displayName;
+    final getter = 'instance.${field.name}';
+
+    return customSerializer != null
+        ? '...$customSerializer($getter),'
+        : "'${field.name}': $getter,";
   }
 
   /// Whether to ignore `childrenListener` or `listener` for the [field].
