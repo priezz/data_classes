@@ -2,9 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 // export 'dart:async';
-export 'package:collection/collection.dart' hide IterableExtension;
+export 'package:collection/collection.dart'
+    hide IterableExtension, IterableNullableExtension;
+export 'package:dartx/dartx.dart' show IterableMapNotNull;
 export 'package:json_annotation/json_annotation.dart';
 export 'package:meta/meta.dart';
+export 'serializers.dart';
 
 typedef ChangeListener = Future<void> Function(
   String path, {
@@ -85,6 +88,7 @@ int hashList(Iterable<Object> arguments) {
   return 0x1fffffff & (result + ((0x00003fff & result) << 15));
 }
 
+T? castOrNull<T>(dynamic x) => x is T ? x : null;
 bool eqDeep<T>(T e1, T e2) =>
     _compare(e1, e2, const DeepCollectionEquality().equals);
 bool eqDeepUnordered<T>(T e1, T e2) =>
@@ -113,4 +117,32 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   }
 
   return true;
+}
+
+
+/// Get the enum value from a string [key].
+///
+/// Returns null if [key] is invalid.
+T? enumFromString<T>(String key, Iterable<T> values) =>
+    values.firstWhereOrNull((v) => v != null && key == v.asString());
+
+extension EnumX on Object {
+  /// Gets the string representation of an enum value.
+  ///
+  /// E.g CategoryLvl1.income becomes "income".
+  String asString() {
+    final String str = toString();
+    final String enumStr = str.split('.').last;
+
+    // ignore: no_runtimetype_tostring
+    return '$runtimeType.$enumStr' == str ? enumStr : str;
+  }
+
+  bool get isEnum {
+    final String str = toString();
+    final String enumStr = str.split('.').last;
+
+    // ignore: no_runtimetype_tostring
+    return '$runtimeType.$enumStr' == str;
+  }
 }

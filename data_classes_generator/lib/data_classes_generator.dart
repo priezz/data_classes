@@ -4,11 +4,14 @@ import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:build/src/builder/build_step.dart';
+import 'package:dartx/dartx.dart';
 // import 'package:collection/collection.dart' show IterableExtension;
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:source_gen/source_gen.dart';
 
 import 'package:data_classes/data_classes.dart';
+
+part 'serialization.dart';
 
 const modelSuffix = 'Model';
 
@@ -289,7 +292,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
       for (final field in fields)
-        '..${field.name} = source.${field.name} ?? dest.${field.name}',
+        '..${field.name} = source.${field.name} ${_isNullable(field) ? '?? dest.${field.name}' : ''}',
       ';\n',
 
       if (childrenListener != null) ...[
@@ -340,7 +343,15 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '    });\n',
         '    return $className.fromModel(_\$${modelName}FromJson(json));',
         '  }\n',
-        '}',
+        '}\n',
+      ],
+
+      if (serialize) ...[
+        '$modelName _\$${modelName}FromJson(Map<dynamic,dynamic> json){',
+        'final model = $modelName();\n',
+        for (final field in fields) ..._generateFieldDeserializer(field),
+        'return model;',
+        '}'
       ]
     ].expand((line) => [line, '\n']));
 
