@@ -364,20 +364,20 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   }
 
   String _generateFieldSerializer(FieldElement field) {
-    final customSerializer = field.metadata
+    final annotation = field.metadata
         .firstOrNullWhere(
           (annotation) =>
               annotation.element?.enclosingElement?.name == 'Serializable',
         )
-        ?.computeConstantValue()
-        ?.getField('toJson')
-        ?.toFunctionValue()
-        ?.displayName;
+        ?.computeConstantValue();
+    final customSerializer =
+        annotation?.getField('toJson')?.toFunctionValue()?.displayName;
+    final customName = annotation?.getField('name')?.toStringValue();
     final getter = 'instance.${field.name}';
+    final invocation =
+        customSerializer != null ? '$customSerializer($getter)' : getter;
 
-    return customSerializer != null
-        ? '...$customSerializer($getter),'
-        : "'${field.name}': $getter,";
+    return "'${customName ?? field.name}': $invocation,";
   }
 
   /// Whether to ignore `childrenListener` or `listener` for the [field].

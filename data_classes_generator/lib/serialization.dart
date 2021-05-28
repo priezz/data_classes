@@ -2,16 +2,16 @@ part of 'data_classes_generator.dart';
 
 List<String> _generateFieldDeserializer(FieldElement field) {
   final fieldName = field.displayName;
-  final accessor = "json['$fieldName']";
-  final customDeserializer = field.metadata
+  final annotation = field.metadata
       .firstOrNullWhere(
         (annotation) =>
             annotation.element?.enclosingElement?.name == 'Serializable',
       )
-      ?.computeConstantValue()
-      ?.getField('fromJson')
-      ?.toFunctionValue()
-      ?.displayName;
+      ?.computeConstantValue();
+  final customDeserializer =
+      annotation?.getField('fromJson')?.toFunctionValue()?.displayName;
+  final customName = annotation?.getField('name')?.toStringValue();
+  final accessor = "json['${customName ?? fieldName}']";
 
   return [
     if (customDeserializer != null)
