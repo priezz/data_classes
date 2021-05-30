@@ -106,6 +106,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         classAnnotation.getField('copyWith')!.toBoolValue()!;
     final bool immutable =
         classAnnotation.getField('immutable')!.toBoolValue()!;
+    final bool convertToSnakeCase =
+        classAnnotation.getField('convertToSnakeCase')?.toBoolValue() ?? false;
     // final ExecutableElement listener = originalClass.metadata
     //     .firstWhere((annotation) =>
     //         annotation.element?.enclosingElement?.name == 'DataClass')
@@ -349,13 +351,21 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (serialize) ...[
         '$modelName _\$${modelName}FromJson(Map<dynamic,dynamic> json){',
         'final model = $modelName();\n',
-        for (final field in fields) ..._generateFieldDeserializer(field),
+        for (final field in fields)
+          ..._generateFieldDeserializer(
+            field,
+            convertToSnakeCase: convertToSnakeCase,
+          ),
         'return model;',
         '}',
         '\n\n',
         'Map<String, dynamic> _\$${modelName}ToJson($modelName instance) =>',
         'serializeToJson({',
-        for (final field in fields) _generateFieldSerializer(field),
+        for (final field in fields)
+          _generateFieldSerializer(
+            field,
+            convertToSnakeCase: convertToSnakeCase,
+          ),
         '});',
       ]
     ].expand((line) => [line, '\n']));
@@ -363,7 +373,10 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     return buffer.toString();
   }
 
-  String _generateFieldSerializer(FieldElement field) {
+  String _generateFieldSerializer(
+    FieldElement field, {
+    bool convertToSnakeCase = false,
+  }) {
     final annotation = field.metadata
         .firstOrNullWhere(
           (annotation) =>
@@ -376,8 +389,10 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     final getter = 'instance.${field.name}';
     final invocation =
         customSerializer != null ? '$customSerializer($getter)' : getter;
+    final jsonKey = customName ??
+        (convertToSnakeCase ? _camelToSnake(field.name) : field.name);
 
-    return "'${customName ?? field.name}': $invocation,";
+    return "'$jsonKey': $invocation,";
   }
 
   /// Whether to ignore `childrenListener` or `listener` for the [field].
@@ -440,3 +455,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     return '$prefix${type.toString().replaceAll('*', '')}';
   }
 }
+
+String _camelToSnake(String string) => string.replaceAllMapped(
+      RegExp('[A-Z]+'),
+      (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
+    );

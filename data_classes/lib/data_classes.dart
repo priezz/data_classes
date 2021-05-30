@@ -5,9 +5,9 @@ import 'package:meta/meta.dart';
 export 'package:collection/collection.dart'
     hide IterableExtension, IterableNullableExtension;
 export 'package:dartx/dartx.dart' show IterableMapNotNull;
-export 'package:json_annotation/json_annotation.dart';
 export 'package:meta/meta.dart';
-export 'serializers.dart';
+
+part 'serializers.dart';
 
 typedef ChangeListener = Future<void> Function(
   String path, {
@@ -24,6 +24,7 @@ class DataClass {
   const DataClass({
     this.builtValueSerializer = false,
     this.childrenListener,
+    this.convertToSnakeCase = false,
     this.copyWith = true,
     this.getName,
     this.immutable = false,
@@ -33,6 +34,7 @@ class DataClass {
   });
   final bool builtValueSerializer;
   final ChangeListener? childrenListener;
+  final bool convertToSnakeCase;
   final bool copyWith;
   final Function? getName;
   final bool immutable;
@@ -137,7 +139,7 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
 T? enumFromString<T>(String key, Iterable<T> values) =>
     values.firstWhereOrNull((v) => v != null && key == v.asString());
 
-extension EnumX on Object {
+extension _EnumX on Object {
   /// Gets the string representation of an enum value.
   ///
   /// E.g CategoryLvl1.income becomes "income".

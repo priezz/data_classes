@@ -1,6 +1,5 @@
 // ignore_for_file: undefined_class, uri_has_not_been_generated
 import 'package:data_classes/data_classes.dart';
-import 'package:data_classes/serializers.dart';
 
 // ignore: unused_import
 import 'models_helpers.dart';
@@ -11,6 +10,7 @@ part 'main.g.dart';
 void main() {
   final fruit = Fruit(
     color: Color.green,
+    custom: '',
     iterableNotNullable: [
       {
         ['not', 'nullable']
@@ -65,7 +65,7 @@ class FruitModel {
   late String custom;
 }
 
-Map<String, dynamic> customToJson(dynamic custom) => {'custom': 'custom!'};
+String customToJson(dynamic custom) =>  'custom!';
 String customFromJson(Map<dynamic, dynamic> json) => json['custom'] ?? 'supsup';
 
 @DataClass(immutable: true)

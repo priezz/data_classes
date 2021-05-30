@@ -1,6 +1,4 @@
-import 'package:dartx/dartx.dart';
-
-import 'data_classes.dart';
+part of 'data_classes.dart';
 
 Map<String, dynamic> serializeToJson(dynamic value) =>
     _serializeEntryToJson('', value)[''];

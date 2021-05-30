@@ -1,6 +1,9 @@
 part of 'data_classes_generator.dart';
 
-List<String> _generateFieldDeserializer(FieldElement field) {
+List<String> _generateFieldDeserializer(
+  FieldElement field, {
+  bool convertToSnakeCase = false,
+}) {
   final fieldName = field.displayName;
   final annotation = field.metadata
       .firstOrNullWhere(
@@ -11,7 +14,8 @@ List<String> _generateFieldDeserializer(FieldElement field) {
   final customDeserializer =
       annotation?.getField('fromJson')?.toFunctionValue()?.displayName;
   final customName = annotation?.getField('name')?.toStringValue();
-  final accessor = "json['${customName ?? fieldName}']";
+  final accessor =
+      "json['${customName ?? (convertToSnakeCase ? _camelToSnake(fieldName) : fieldName)}']";
 
   return [
     if (customDeserializer != null)
@@ -59,7 +63,7 @@ List<String> _generateLeafDeserializer(
   );
 
   final typeStr = type
-      .getDisplayString(withNullability: !type.hasFromJson)
+      .getDisplayString(withNullability: !type.hasFromJson && !type.isEnum)
       .removePrefix('[')
       .removeSuffix(']');
   final suffix = type.isRequired && forceUnwrap ? '!' : '';
@@ -79,6 +83,8 @@ List<String> _generateLeafDeserializer(
         "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
       else if (type.isDateTime)
         "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      else if (type.isDynamic)
+        accessor
       else
         'castOrNull<$typeStr>($accessor)$suffix',
     ],
@@ -168,8 +174,10 @@ List<String> _generateMapDeserializer(
   final fieldGetter = fieldName ?? 'val';
   final fieldCall =
       addNullCheck || !type.isRequired ? fieldGetter : '($fieldGetter ?? {})';
-  final shouldNullCheckValue =
-      valueType.isRequired && !valueType.isIterable && !valueType.isDartCoreMap;
+  final shouldNullCheckValue = valueType.isRequired &&
+      !valueType.isIterable &&
+      !valueType.isDartCoreMap &&
+      !valueType.isDynamic;
 
   return [
     if (!isRoot) '(e){',
@@ -236,6 +244,7 @@ extension on DartType {
       isDartCoreString ||
       isDateTime ||
       isEnum ||
+      isDynamic ||
       hasFromJson;
 
   bool get isRequired => nullabilitySuffix != NullabilitySuffix.question;
