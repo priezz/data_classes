@@ -5,21 +5,13 @@ List<String> _generateFieldDeserializer(
   bool convertToSnakeCase = false,
 }) {
   final fieldName = field.displayName;
-  final annotation = field.metadata
-      .firstOrNullWhere(
-        (annotation) =>
-            annotation.element?.enclosingElement?.name == 'Serializable',
-      )
-      ?.computeConstantValue();
-  final customDeserializer =
-      annotation?.getField('fromJson')?.toFunctionValue()?.displayName;
-  final customName = annotation?.getField('name')?.toStringValue();
+  final customDeserializer = field.customDeserializer;
   final accessor =
-      "json['${customName ?? (convertToSnakeCase ? _camelToSnake(fieldName) : fieldName)}']";
+      "json['${field.jsonKey ?? (convertToSnakeCase ? _camelToSnake(fieldName) : fieldName)}']";
 
   return [
     if (customDeserializer != null)
-      'model.${field.displayName} = $customDeserializer(json);'
+      'model.${field.displayName} = $customDeserializer($accessor);'
     else if (field.type.isLeaf) ...[
       'final ${field.displayName} = ',
       ..._generateLeafDeserializer(
@@ -54,7 +46,6 @@ List<String> _generateLeafDeserializer(
   DartType type,
   String accessor, {
   bool forceUnwrap = false,
-  bool sourceIsAlwaysString = false,
 }) {
   assert(
     type.isLeaf,
@@ -67,27 +58,26 @@ List<String> _generateLeafDeserializer(
       .removePrefix('[')
       .removeSuffix(']');
   final suffix = type.isRequired && forceUnwrap ? '!' : '';
+  final customDeserializer = type.element?.customDeserializer;
 
   return [
-    if (sourceIsAlwaysString &&
-        (type.isDartCoreInt || type.isDartCoreDouble)) ...[
-      if (type.isDartCoreInt)
-        "int.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
-      else if (type.isDartCoreDouble)
-        "double.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
-    ] else ...[
-      if (type.hasFromJson) ...[
-        if (!type.isRequired) '$accessor == null ? null : ',
-        '$typeStr.fromJson($accessor ?? {})',
-      ] else if (type.isEnum)
-        "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
-      else if (type.isDateTime)
-        "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
-      else if (type.isDynamic)
-        accessor
-      else
-        'castOrNull<$typeStr>($accessor)$suffix',
-    ],
+    if (customDeserializer != null)
+      '$customDeserializer($accessor)'
+    else if (type.isDartCoreInt)
+      "castOrNull<int>($accessor) ?? int.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+    else if (type.isDartCoreDouble)
+      "castOrNull<num>($accessor)?.toDouble() ?? double.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+    else if (type.hasFromJson) ...[
+      if (!type.isRequired) '$accessor == null ? null : ',
+      '$typeStr.fromJson($accessor ?? {})',
+    ] else if (type.isEnum)
+      "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
+    else if (type.isDateTime)
+      "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+    else if (type.isDynamic)
+      accessor
+    else
+      'castOrNull<$typeStr>($accessor)$suffix',
   ];
 }
 
@@ -187,11 +177,7 @@ List<String> _generateMapDeserializer(
     if (!type.isRequired && !addNullCheck) ' $fieldGetter == null ? null : ',
     'Map.fromEntries($fieldCall.entries.mapNotNull((e){',
     'final key = ',
-    ..._generateLeafDeserializer(
-      keyType,
-      'e.key',
-      sourceIsAlwaysString: true,
-    ),
+    ..._generateLeafDeserializer(keyType, 'e.key'),
     ';',
     if (valueType.isLeaf) ...[
       'final value = ',
@@ -232,7 +218,6 @@ extension on DartType {
           .constructors
           .any((method) => method.displayName == 'fromJson')
       : false;
-
   bool get isDateTime => getDisplayString(withNullability: false) == 'DateTime';
   bool get isEnum =>
       element is ClassElement ? (element as ClassElement).isEnum : false;
@@ -245,7 +230,8 @@ extension on DartType {
       isDateTime ||
       isEnum ||
       isDynamic ||
-      hasFromJson;
+      hasFromJson ||
+      isDartCoreObject;
 
   bool get isRequired => nullabilitySuffix != NullabilitySuffix.question;
 
@@ -260,19 +246,28 @@ extension on DartType {
   }
 }
 
-Map<String, List<String>> thing = {};
+extension on Element {
+  DartObject? get serializableAnnotation => metadata
+      .firstOrNullWhere(
+        (annotation) =>
+            annotation.element?.enclosingElement?.name == 'Serializable',
+      )
+      ?.computeConstantValue();
 
-void parse(dynamic json) {
-  final data = castOrNull<Map>(json['thing']);
+  String? get customSerializer => serializableAnnotation
+      ?.getField('toJson')
+      ?.toFunctionValue()
+      ?.displayName;
 
-  thing = Map.fromEntries((data ?? {}).entries.mapNotNull((entry) {
-    final keyTyped = castOrNull<String>(entry.key);
-    final valueTyped = castOrNull<List>(entry.value);
+  String? get customDeserializer => serializableAnnotation
+      ?.getField('fromJson')
+      ?.toFunctionValue()
+      ?.displayName;
 
-    final value = (valueTyped ?? []).mapNotNull((e) {
-      return castOrNull<String>(e);
-    }).toList();
-
-    return MapEntry(keyTyped!, value);
-  }));
+  String? get jsonKey => metadata
+      .firstOrNullWhere((annotation) =>
+          annotation.element?.enclosingElement?.name == 'JsonKey')
+      ?.computeConstantValue()
+      ?.getField('name')
+      ?.toStringValue();
 }

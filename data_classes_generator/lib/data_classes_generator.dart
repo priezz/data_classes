@@ -11,7 +11,7 @@ import 'package:source_gen/source_gen.dart';
 
 import 'package:data_classes/data_classes.dart';
 
-part 'serialization.dart';
+part 'deserialization.dart';
 
 const modelSuffix = 'Model';
 
@@ -377,15 +377,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     FieldElement field, {
     bool convertToSnakeCase = false,
   }) {
-    final annotation = field.metadata
-        .firstOrNullWhere(
-          (annotation) =>
-              annotation.element?.enclosingElement?.name == 'Serializable',
-        )
-        ?.computeConstantValue();
+    final customName = field.jsonKey;
     final customSerializer =
-        annotation?.getField('toJson')?.toFunctionValue()?.displayName;
-    final customName = annotation?.getField('name')?.toStringValue();
+        field.customSerializer ?? field.type.element?.customSerializer;
     final getter = 'instance.${field.name}';
     final invocation =
         customSerializer != null ? '$customSerializer($getter)' : getter;

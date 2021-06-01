@@ -44,14 +44,18 @@ class DataClass {
 }
 
 @immutable
+class JsonKey {
+  const JsonKey(this.name);
+  final String name;
+}
+
+@immutable
 class Serializable {
   const Serializable({
     this.fromJson,
-    this.name,
     this.toJson,
   });
   final dynamic Function(Map<dynamic, dynamic> json)? fromJson;
-  final String? name;
   final dynamic Function(dynamic)? toJson;
 }
 
