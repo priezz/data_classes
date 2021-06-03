@@ -56,7 +56,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       originalClass.name.length - modelSuffix.length,
     );
     final modelName = originalClass.name;
-    final modelBuilderName = '_${modelName}Builder';
+    final modelBuilderName = '${modelName}Builder';
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
