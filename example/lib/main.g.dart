@@ -10,27 +10,27 @@ part of 'main.dart';
 /// {@category model}
 /// A fruit with a doc comment
 class _FruitModelBuilder extends IModelBuilder<FruitModel> {
-  _FruitModelBuilder(this._source);
-  final FruitModel _source;
+  _FruitModelBuilder(this._$source);
+  final FruitModel _$source;
 
   Color? _color;
-  Color? get color => _color ?? _source.color;
+  Color? get color => _color ?? _$source.color;
   set color(Color? color) => _color = color;
 
   Map<String, dynamic>? _extraInfo;
-  Map<String, dynamic> get extraInfo => _extraInfo ?? _source.extraInfo;
+  Map<String, dynamic> get extraInfo => _extraInfo ?? _$source.extraInfo;
   set extraInfo(Map<String, dynamic> extraInfo) => _extraInfo = extraInfo;
 
   String? _name;
-  String get name => _name ?? _source.name;
+  String get name => _name ?? _$source.name;
   set name(String name) => _name = name;
 
   Tree? _tree;
-  Tree get tree => _tree ?? _source.tree;
+  Tree get tree => _tree ?? _$source.tree;
   set tree(Tree tree) => _tree = tree;
 
   double? _weight;
-  double get weight => _weight ?? _source.weight;
+  double get weight => _weight ?? _$source.weight;
   set weight(double weight) => _weight = weight;
 
   _FruitModelBuilder withValuesFrom(FruitModel model) {
@@ -44,11 +44,11 @@ class _FruitModelBuilder extends IModelBuilder<FruitModel> {
   }
 
   FruitModel build() => FruitModel()
-    ..color = _color ?? _source.color
-    ..extraInfo = _extraInfo ?? _source.extraInfo
-    ..name = _name ?? _source.name
-    ..tree = _tree ?? _source.tree
-    ..weight = _weight ?? _source.weight;
+    ..color = _color ?? _$source.color
+    ..extraInfo = _extraInfo ?? _$source.extraInfo
+    ..name = _name ?? _$source.name
+    ..tree = _tree ?? _$source.tree
+    ..weight = _weight ?? _$source.weight;
 }
 
 @immutable
@@ -242,15 +242,15 @@ Map<String, dynamic> _$FruitModelToJson(FruitModel instance) =>
 /// {@category model}
 
 class _TreeModelBuilder extends IModelBuilder<TreeModel> {
-  _TreeModelBuilder(this._source);
-  final TreeModel _source;
+  _TreeModelBuilder(this._$source);
+  final TreeModel _$source;
 
   String? _name;
-  String get name => _name ?? _source.name;
+  String get name => _name ?? _$source.name;
   set name(String name) => _name = name;
 
   double? _averageHeight;
-  double? get averageHeight => _averageHeight ?? _source.averageHeight;
+  double? get averageHeight => _averageHeight ?? _$source.averageHeight;
   set averageHeight(double? averageHeight) => _averageHeight = averageHeight;
 
   _TreeModelBuilder withValuesFrom(TreeModel model) {
@@ -261,8 +261,8 @@ class _TreeModelBuilder extends IModelBuilder<TreeModel> {
   }
 
   TreeModel build() => TreeModel()
-    ..name = _name ?? _source.name
-    ..averageHeight = _averageHeight ?? _source.averageHeight;
+    ..name = _name ?? _$source.name
+    ..averageHeight = _averageHeight ?? _$source.averageHeight;
 }
 
 @immutable
