@@ -69,18 +69,14 @@ class Serializable {
 //   final bool generateNegations;
 // }
 
+abstract class IModelBuilder<TModel> {
+  IModelBuilder<TModel> withValuesFrom(TModel model);
+  TModel build(TModel fallback);
+}
+
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
-  late TModel _model;
-
-  T copy([DataClassBuilder<TModel>? update]);
-
-  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]) async {
-    final T result = copy();
-    await update?.call(result._model);
-
-    return result;
-  }
-
+  T copy([DataClassBuilder<IModelBuilder<TModel>>? update]);
+  Future<T> copyAsync([DataClassAsyncBuilder<IModelBuilder<TModel>>? update]);
   T copyWith() => copy();
   TModel get thisModel;
   Map toJson() => {};
