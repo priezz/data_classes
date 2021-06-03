@@ -71,7 +71,7 @@ class Serializable {
 
 abstract class IModelBuilder<TModel> {
   IModelBuilder<TModel> withValuesFrom(TModel model);
-  TModel build(TModel fallback);
+  TModel build();
 }
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {

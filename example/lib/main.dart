@@ -25,7 +25,10 @@ Future<void> main() async {
   print('Heavy pineapple: $heavyPineapple');
 
   final pineappleFromBrasil = await pineapple.copyAsync(
-    (builder) async => builder.extraInfo = await fetchPineappleInfo(),
+    (builder) async => builder.extraInfo = {
+      ...builder.extraInfo,
+      ...await fetchPineappleInfo(),
+    },
   );
   print('Pineapple from Brasil: $pineappleFromBrasil');
 }

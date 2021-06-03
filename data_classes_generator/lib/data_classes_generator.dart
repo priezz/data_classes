@@ -227,9 +227,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
       '$className.build(DataClassBuilder<$modelBuilderName>? build) {\n',
-      'final builder = $modelBuilderName();',
+      'final builder = $modelBuilderName(_model);',
       'build?.call(builder);',
-      '_updateModel(builder.build(_model));',
+      '_updateModel(builder.build());',
       '\n',
       // for (final field in fields)
       //   if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
@@ -269,13 +269,13 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override $className copy([DataClassBuilder<$modelBuilderName>? update]) => $className.build((builder) {',
       '  update?.call(builder.withValuesFrom(_model));',
       if (childrenListener != null)
-        '  _notifyOnPropChanges(_model, builder.build(_model));',
+        '  _notifyOnPropChanges(_model, builder.build());',
       '});',
-
+      '\n',
       '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelBuilderName>? update]) async {'
-          'final builder = $modelBuilderName().withValuesFrom(_model);'
+          'final builder = $modelBuilderName(_model);'
           'await update?.call(builder);'
-          'return $className.fromModel(builder.build(_model));'
+          'return $className.fromModel(builder.build());'
           '}',
 
       /// copyWith
@@ -389,26 +389,40 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     String modelName,
     String modelBuilderName,
     Set<FieldElement> fields,
-  ) =>
-      [
-        'class $modelBuilderName extends IModelBuilder<$modelName> {',
-        '$modelBuilderName();',
-        for (final field in fields)
-          '${field.type.getDisplayString(withNullability: false)}? ${field.displayName};',
+  ) {
+    List<String> _generateField(FieldElement field) {
+      final name = field.displayName;
+      final typeStr = field.type.getDisplayString(withNullability: true);
+      final typeNoNullability =
+          field.type.getDisplayString(withNullability: false);
+
+      return [
+        '$typeNoNullability? _$name;',
+        '$typeStr get $name => _$name ?? _source.$name;',
+        'set $name($typeStr $name) => _$name = $name;',
         '\n',
-        '$modelBuilderName withValuesFrom($modelName model) {',
-        for (final field in fields)
-          '${field.displayName} = model.${field.displayName};',
-        '\n',
-        'return this;',
-        '}',
-        '\n',
-        '$modelName build($modelName fallback) => $modelName()',
-        for (final field in fields)
-          '..${field.displayName} = ${field.displayName} ?? fallback.${field.displayName}',
-        ';',
-        '}'
       ];
+    }
+
+    return [
+      'class $modelBuilderName extends IModelBuilder<$modelName> {',
+      '$modelBuilderName(this._source);',
+      'final $modelName _source;\n',
+      for (final field in fields) ..._generateField(field),
+      '$modelBuilderName withValuesFrom($modelName model) {',
+      for (final field in fields)
+        '${field.displayName} = model.${field.displayName};',
+      '\n',
+      'return this;',
+      '}',
+      '\n',
+      '$modelName build() => $modelName()',
+      for (final field in fields)
+        '..${field.displayName} = _${field.displayName} ?? _source.${field.displayName}',
+      ';',
+      '}'
+    ];
+  }
 
   String _generateFieldSerializer(
     FieldElement field, {
