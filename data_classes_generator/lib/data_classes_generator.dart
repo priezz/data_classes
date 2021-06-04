@@ -4,11 +4,14 @@ import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 import 'package:build/src/builder/build_step.dart';
+import 'package:dartx/dartx.dart';
 // import 'package:collection/collection.dart' show IterableExtension;
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:source_gen/source_gen.dart';
 
 import 'package:data_classes/data_classes.dart';
+
+part 'deserialization.dart';
 
 const modelSuffix = 'Model';
 
@@ -103,6 +106,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         classAnnotation.getField('copyWith')!.toBoolValue()!;
     final bool immutable =
         classAnnotation.getField('immutable')!.toBoolValue()!;
+    final bool convertToSnakeCase =
+        classAnnotation.getField('convertToSnakeCase')?.toBoolValue() ?? false;
     // final ExecutableElement listener = originalClass.metadata
     //     .firstWhere((annotation) =>
     //         annotation.element?.enclosingElement?.name == 'DataClass')
@@ -190,7 +195,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
           '',
       if (immutable) '@immutable',
       'class $className extends IDataClass<$className, $modelName> {',
-      '@override final $modelName _model = $modelName();\n',
+      'final $modelName _model = $modelName();\n',
 
       /// The field members.
       for (final field in fields) ...[
@@ -259,6 +264,15 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '  update?.call(builder);',
       if (childrenListener != null) '  _notifyOnPropChanges(_model, builder);',
       '});',
+      '\n',
+
+      // '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelName>? update]) async {',
+      // 'final newModel = $modelName();',
+      // '_modelCopy(_model, newModel);',
+      // 'await update?.call(newModel);',
+      // 'return $className.fromModel(newModel);',
+      // '}',
+      // '\n',
 
       /// copyWith
       if (generateCopyWith) ...[
@@ -285,11 +299,11 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
 
-      '@override $modelName get thisModel => _model;\n',
+      '@override $modelName get \$model => _model;\n',
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
       for (final field in fields)
-        '..${field.name} = source.${field.name} ?? dest.${field.name}',
+        '..${field.name} = source.${field.name}',
       ';\n',
 
       if (childrenListener != null) ...[
@@ -340,11 +354,48 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '    });\n',
         '    return $className.fromModel(_\$${modelName}FromJson(json));',
         '  }\n',
+        '}\n',
+      ],
+
+      if (serialize) ...[
+        '$modelName _\$${modelName}FromJson(Map<dynamic,dynamic> json){',
+        'final model = $modelName();\n',
+        for (final field in fields)
+          ..._generateFieldDeserializer(
+            field,
+            convertToSnakeCase: convertToSnakeCase,
+          ),
+        'return model;',
         '}',
+        '\n\n',
+        'Map<String, dynamic> _\$${modelName}ToJson($modelName instance) =>',
+        'serializeToJson({',
+        for (final field in fields)
+          _generateFieldSerializer(
+            field,
+            convertToSnakeCase: convertToSnakeCase,
+          ),
+        '});',
       ]
     ].expand((line) => [line, '\n']));
 
     return buffer.toString();
+  }
+
+  String _generateFieldSerializer(
+    FieldElement field, {
+    bool convertToSnakeCase = false,
+  }) {
+    final customName = field.jsonKey;
+    final customSerializer =
+        field.customSerializer ?? field.type.element?.customSerializer;
+    final getter = 'instance.${field.name}';
+    final invocation =
+        customSerializer != null ? '$customSerializer($getter)' : getter;
+    final jsonKey = customName ??
+        (convertToSnakeCase ? _camelToSnake(field.name) : field.name);
+
+    return "'$jsonKey': $invocation,";
   }
 
   /// Whether to ignore `childrenListener` or `listener` for the [field].
@@ -407,3 +458,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     return '$prefix${type.toString().replaceAll('*', '')}';
   }
 }
+
+String _camelToSnake(String string) => string.replaceAllMapped(
+      RegExp('[A-Z]+'),
+      (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
+    );

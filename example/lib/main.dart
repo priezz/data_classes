@@ -1,53 +1,73 @@
 // ignore_for_file: undefined_class, uri_has_not_been_generated
 import 'package:data_classes/data_classes.dart';
 
+// ignore: unused_import
+import 'models_helpers.dart';
+export 'models_helpers.dart';
+
 part 'main.g.dart';
 
-void main() {
-  final apple = Fruit(
-    color: Color.green,
-    name: 'apple',
-    shape: Shape.round,
-  );
-  final orange1 = Fruit.fromJson(orangeJson);
-  final orange2 = Fruit.fromJson(orangeJson);
-  final yellowFruit = Fruit(color: Color.yellow);
-  final lime = yellowFruit.copy((f) => f.name = 'lime');
-  apple.big = true; // should be analyzer error
+const pineappleJson = {
+  'color': 'yellow',
+  'extraInfo': {
+    'cultivatedIn': 'Costa Rica',
+    'priceInDollarsPerKg': 3.2,
+  },
+  'name': 'Pineapple',
+  'weightInGrams': 500,
+};
 
-  print('Apple = $apple\nLime = $lime\nOrange = $orange1');
-  print('Oranges are equal: ${orange1 == orange2}');
-  print('Orange is equal to apple: ${orange1 == apple}');
-  print('${orange1.coloredName}\n');
+Future<void> main() async {
+  final pineapple = Fruit.fromJson(pineappleJson);
+  final pineappleCopy = pineapple.copy();
+  print('Pineapple: $pineapple');
+  print(
+    'Pineapple is ${pineappleCopy != pineapple ? 'not ' : ''}equal to its copy',
+  );
+
+  final heavyPineapple = pineapple.copyWith(weight: 1500);
+  print('Heavy pineapple: $heavyPineapple');
+
+  // final pineappleFromBrasil = await pineapple.copyAsync(
+  //   (builder) async => builder.extraInfo = {
+  //     ...builder.extraInfo,
+  //     ...await fetchPineappleInfo(),
+  //   },
+  // );
+  // print('Pineapple from Brasil: $pineappleFromBrasil');
 }
+
+// Future<Map<String, String>> fetchPineappleInfo() async {
+//   await Future.delayed(Duration(seconds: 1));
+
+//   return {'cultivatedIn': 'Brasil'};
+// }
 
 enum Color { red, yellow, green, brown, orange }
-enum Shape { round, curved }
 
 /// A fruit with a doc comment
-@JsonSerializable()
-@GenerateDataClass(immutable: true)
+@DataClass(
+  immutable: true,
+  childrenListener: listener,
+)
 class FruitModel {
-  String name = 'unknown';
-
-  /// A field with a doc comment
-  @GenerateValueGetters(usePrefix: true)
-  @GenerateValueGetters()
-  Color color;
-  @GenerateValueGetters(generateNegations: true)
-  Shape shape = Shape.curved;
-  @JsonKey(name: 'liked_by')
-  List<String> likedBy = [];
-  @nullable
-  bool big;
-
-  String get coloredName => '$name is $color';
+  Color? color;
+  Map<String, dynamic> extraInfo = {};
+  late String name;
+  @Serializable(fromJson: treeFromJson)
+  late Tree tree;
+  @JsonKey('weightInGrams')
+  late double weight;
 }
 
-const orangeJson = {
-  'big': true,
-  'color': 'orange',
-  'liked_by': ['Nancy'],
-  'name': 'orange',
-  'shape': 'round',
-};
+@DataClass(immutable: true)
+class TreeModel {
+  late String name;
+  double? averageHeight;
+}
+
+Tree treeFromJson(dynamic json) =>
+    json is Map ? Tree.fromJson(json) : Tree(name: 'Imaginary tree');
+
+Future<void> listener(path, {next, prev, toJson}) async =>
+    print('$path: $prev -> $next');

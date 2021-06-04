@@ -2,9 +2,12 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 // export 'dart:async';
-export 'package:collection/collection.dart' hide IterableExtension;
-export 'package:json_annotation/json_annotation.dart';
+export 'package:collection/collection.dart'
+    hide IterableExtension, IterableNullableExtension;
+export 'package:dartx/dartx.dart' show IterableMapNotNull;
 export 'package:meta/meta.dart';
+
+part 'serializers.dart';
 
 typedef ChangeListener = Future<void> Function(
   String path, {
@@ -21,6 +24,7 @@ class DataClass {
   const DataClass({
     this.builtValueSerializer = false,
     this.childrenListener,
+    this.convertToSnakeCase = false,
     this.copyWith = true,
     this.getName,
     this.immutable = false,
@@ -30,12 +34,29 @@ class DataClass {
   });
   final bool builtValueSerializer;
   final ChangeListener? childrenListener;
+  final bool convertToSnakeCase;
   final bool copyWith;
   final Function? getName;
   final bool immutable;
   final String? name;
   final ChangeListener? listener;
   final bool serialize;
+}
+
+@immutable
+class JsonKey {
+  const JsonKey(this.name);
+  final String name;
+}
+
+@immutable
+class Serializable {
+  const Serializable({
+    this.fromJson,
+    this.toJson,
+  });
+  final dynamic Function(Map<dynamic, dynamic> json)? fromJson;
+  final dynamic Function(dynamic)? toJson;
 }
 
 // @immutable
@@ -49,19 +70,11 @@ class DataClass {
 // }
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
-  late TModel _model;
-
   T copy([DataClassBuilder<TModel>? update]);
-
-  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]) async {
-    final T result = copy();
-    await update?.call(result._model);
-
-    return result;
-  }
+  // Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
 
   T copyWith() => copy();
-  TModel get thisModel;
+  TModel get $model;
   Map toJson() => {};
 }
 
@@ -85,6 +98,7 @@ int hashList(Iterable<Object> arguments) {
   return 0x1fffffff & (result + ((0x00003fff & result) << 15));
 }
 
+T? castOrNull<T>(dynamic x) => x is T ? x : null;
 bool eqDeep<T>(T e1, T e2) =>
     _compare(e1, e2, const DeepCollectionEquality().equals);
 bool eqDeepUnordered<T>(T e1, T e2) =>
@@ -113,4 +127,31 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   }
 
   return true;
+}
+
+/// Get the enum value from a string [key].
+///
+/// Returns null if [key] is invalid.
+T? enumFromString<T>(String key, Iterable<T> values) =>
+    values.firstWhereOrNull((v) => v != null && key == v.asString());
+
+extension _EnumX on Object {
+  /// Gets the string representation of an enum value.
+  ///
+  /// E.g CategoryLvl1.income becomes "income".
+  String asString() {
+    final String str = toString();
+    final String enumStr = str.split('.').last;
+
+    // ignore: no_runtimetype_tostring
+    return '$runtimeType.$enumStr' == str ? enumStr : str;
+  }
+
+  bool get isEnum {
+    final String str = toString();
+    final String enumStr = str.split('.').last;
+
+    // ignore: no_runtimetype_tostring
+    return '$runtimeType.$enumStr' == str;
+  }
 }
