@@ -84,14 +84,6 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
         _notifyOnPropChanges(_model, builder);
       });
 
-  @override
-  Future<Fruit> copyAsync([DataClassAsyncBuilder<FruitModel>? update]) async {
-    final newModel = FruitModel();
-    _modelCopy(_model, newModel);
-    await update?.call(newModel);
-    return Fruit.fromModel(newModel);
-  }
-
   /// Creates a new instance of [Fruit], which is a copy of this with some changes
   @override
   Fruit copyWith({
@@ -256,14 +248,6 @@ class Tree extends IDataClass<Tree, TreeModel> {
         _modelCopy(_model, builder);
         update?.call(builder);
       });
-
-  @override
-  Future<Tree> copyAsync([DataClassAsyncBuilder<TreeModel>? update]) async {
-    final newModel = TreeModel();
-    _modelCopy(_model, newModel);
-    await update?.call(newModel);
-    return Tree.fromModel(newModel);
-  }
 
   /// Creates a new instance of [Tree], which is a copy of this with some changes
   @override

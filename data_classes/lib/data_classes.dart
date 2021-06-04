@@ -71,7 +71,7 @@ class Serializable {
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
   T copy([DataClassBuilder<TModel>? update]);
-  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
+  // Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
 
   T copyWith() => copy();
   TModel get $model;

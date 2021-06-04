@@ -28,20 +28,20 @@ Future<void> main() async {
   final heavyPineapple = pineapple.copyWith(weight: 1500);
   print('Heavy pineapple: $heavyPineapple');
 
-  final pineappleFromBrasil = await pineapple.copyAsync(
-    (builder) async => builder.extraInfo = {
-      ...builder.extraInfo,
-      ...await fetchPineappleInfo(),
-    },
-  );
-  print('Pineapple from Brasil: $pineappleFromBrasil');
+  // final pineappleFromBrasil = await pineapple.copyAsync(
+  //   (builder) async => builder.extraInfo = {
+  //     ...builder.extraInfo,
+  //     ...await fetchPineappleInfo(),
+  //   },
+  // );
+  // print('Pineapple from Brasil: $pineappleFromBrasil');
 }
 
-Future<Map<String, String>> fetchPineappleInfo() async {
-  await Future.delayed(Duration(seconds: 1));
+// Future<Map<String, String>> fetchPineappleInfo() async {
+//   await Future.delayed(Duration(seconds: 1));
 
-  return {'cultivatedIn': 'Brasil'};
-}
+//   return {'cultivatedIn': 'Brasil'};
+// }
 
 enum Color { red, yellow, green, brown, orange }
 

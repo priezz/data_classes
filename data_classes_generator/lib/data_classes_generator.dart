@@ -266,13 +266,13 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '});',
       '\n',
 
-      '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelName>? update]) async {',
-      'final newModel = $modelName();',
-      '_modelCopy(_model, newModel);',
-      'await update?.call(newModel);',
-      'return $className.fromModel(newModel);',
-      '}',
-      '\n',
+      // '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelName>? update]) async {',
+      // 'final newModel = $modelName();',
+      // '_modelCopy(_model, newModel);',
+      // 'await update?.call(newModel);',
+      // 'return $className.fromModel(newModel);',
+      // '}',
+      // '\n',
 
       /// copyWith
       if (generateCopyWith) ...[
