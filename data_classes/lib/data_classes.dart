@@ -106,13 +106,17 @@ bool eqDeepUnordered<T>(T e1, T e2) =>
 bool eqShallow<T>(T e1, T e2) =>
     _compare(e1, e2, const DefaultEquality().equals);
 
-_compare<T>(T? e1, T? e2, EqualityFn equalityFn) => e1 is Map
-    ? _mapCompare(e1, e2 as Map, equalityFn)
-    : e1 is Iterable
-        ? equalityFn(e1, e2)
-        : e1 is double && e2 is double && e1.isNaN && e2.isNaN
-            ? true
-            : equalityFn(e1, e2);
+bool _compare<T>(T? e1, T? e2, EqualityFn equalityFn) => e1 == null
+    ? e2 == null
+    : e2 == null
+        ? false
+        : e1 is Map
+            ? _mapCompare(e1, e2 as Map, equalityFn)
+            : e1 is Iterable
+                ? equalityFn(e1, e2)
+                : e1 is double && e2 is double && e1.isNaN && e2.isNaN
+                    ? true
+                    : equalityFn(e1, e2);
 
 bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   bool keysEqual =
