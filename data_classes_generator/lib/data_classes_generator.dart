@@ -56,7 +56,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       originalClass.name.length - modelSuffix.length,
     );
     final modelName = originalClass.name;
-    final modelBuilderName = '${modelName}Builder';
+    final modelBuilderName = '_${modelName}Builder';
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
@@ -398,7 +398,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       return [
         '$typeNoNullability? _$name;',
-        '$typeStr get $name => _$name ?? _\$source.$name;',
+        '$typeStr get $name => _$name ?? _source.$name;',
         'set $name($typeStr $name) => _$name = $name;',
         '\n',
       ];
@@ -406,8 +406,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
     return [
       'class $modelBuilderName extends IModelBuilder<$modelName> {',
-      '$modelBuilderName(this._\$source);',
-      'final $modelName _\$source;\n',
+      '$modelBuilderName(this._source);',
+      'final $modelName _source;\n',
       for (final field in fields) ..._generateField(field),
       '$modelBuilderName withValuesFrom($modelName model) {',
       for (final field in fields)
@@ -418,7 +418,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '\n',
       '$modelName build() => $modelName()',
       for (final field in fields)
-        '..${field.displayName} = _${field.displayName} ?? _\$source.${field.displayName}',
+        '..${field.displayName} = _${field.displayName} ?? _source.${field.displayName}',
       ';',
       '}'
     ];
