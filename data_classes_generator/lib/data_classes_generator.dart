@@ -195,7 +195,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
           '',
       if (immutable) '@immutable',
       'class $className extends IDataClass<$className, $modelName> {',
-      '@override final $modelName _model = $modelName();\n',
+      'final $modelName _model = $modelName();\n',
 
       /// The field members.
       for (final field in fields) ...[
@@ -264,6 +264,15 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '  update?.call(builder);',
       if (childrenListener != null) '  _notifyOnPropChanges(_model, builder);',
       '});',
+      '\n',
+
+      '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelName>? update]) async {',
+      'final newModel = $modelName();',
+      '_modelCopy(_model, newModel);',
+      'await update?.call(newModel);',
+      'return $className.fromModel(newModel);',
+      '}',
+      '\n',
 
       /// copyWith
       if (generateCopyWith) ...[
@@ -294,7 +303,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
       for (final field in fields)
-        '..${field.name} = source.${field.name} ${_isNullable(field) ? '?? dest.${field.name}' : ''}',
+        '..${field.name} = source.${field.name}',
       ';\n',
 
       if (childrenListener != null) ...[

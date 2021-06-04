@@ -70,16 +70,8 @@ class Serializable {
 // }
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
-  late TModel _model;
-
   T copy([DataClassBuilder<TModel>? update]);
-
-  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]) async {
-    final T result = copy();
-    await update?.call(result._model);
-
-    return result;
-  }
+  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
 
   T copyWith() => copy();
   TModel get thisModel;

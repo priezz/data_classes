@@ -7,78 +7,67 @@ export 'models_helpers.dart';
 
 part 'main.g.dart';
 
-void main() {
-  final fruit = Fruit(
-    color: Color.green,
-    custom: '',
-    iterableNotNullable: [
-      {
-        ['not', 'nullable']
-      }
-    ],
-    mapNotNullable: {
-      2: ['map', 'mapo']
-    },
-    big: false,
-    timeStamp: DateTime.now(),
+const pineappleJson = {
+  'color': 'yellow',
+  'extraInfo': {
+    'cultivatedIn': 'Costa Rica',
+    'priceInDollarsPerKg': 3.2,
+  },
+  'name': 'Pineapple',
+  'weightInGrams': 500,
+};
+
+Future<void> main() async {
+  final pineapple = Fruit.fromJson(pineappleJson);
+  final pineappleCopy = pineapple.copy();
+  print('Pineapple: $pineapple');
+  print(
+    'Pineapple is ${pineappleCopy != pineapple ? 'not ' : ''}equal to its copy',
   );
-  final json = fruit.toJson();
-  final fruitNew = Fruit.fromJson(json);
-  print(fruit);
-  print('______');
-  print(fruitNew);
-  print(fruit.toString() == fruitNew.toString());
+
+  final heavyPineapple = pineapple.copyWith(weight: 1500);
+  print('Heavy pineapple: $heavyPineapple');
+
+  final pineappleFromBrasil = await pineapple.copyAsync(
+    (builder) async => builder.extraInfo = {
+      ...builder.extraInfo,
+      ...await fetchPineappleInfo(),
+    },
+  );
+  print('Pineapple from Brasil: $pineappleFromBrasil');
+}
+
+Future<Map<String, String>> fetchPineappleInfo() async {
+  await Future.delayed(Duration(seconds: 1));
+
+  return {'cultivatedIn': 'Brasil'};
 }
 
 enum Color { red, yellow, green, brown, orange }
-enum Shape { round, curved }
 
 /// A fruit with a doc comment
-@DataClass(immutable: true)
+@DataClass(
+  immutable: true,
+  childrenListener: listener,
+)
 class FruitModel {
-  String name = 'unknown';
-  late Color color;
-  Shape shape = Shape.curved;
-  List<Map<String, String>?> iterableNullable = [];
-  late List<Set<List<String>>> iterableNotNullable;
-  List<Set<List<String>>> iterableDefault = [
-    {
-      ['Hello']
-    }
-  ];
-  List<String> likedBy = [];
-  Map<String, List<String>> mapDefault = {
-    'hello': ['world']
-  };
-  late Map<int, List<String>> mapNotNullable;
-  Map<String, Map<int, List<String?>>?>? mapNullable;
-  late bool big;
-  Seed seed = Seed(number: 2);
-  Seed? optionalSeed;
-  Map<Color, Iterable<String>> colorsMap = {};
-  late DateTime timeStamp;
-
-  @Serializable(
-    fromJson: customFromJson,
-    toJson: customToJson,
-  )
-  late String custom;
+  Color? color;
+  Map<String, dynamic> extraInfo = {};
+  late String name;
+  @Serializable(fromJson: treeFromJson)
+  late Tree tree;
+  @JsonKey('weightInGrams')
+  late double weight;
 }
-
-String customToJson(dynamic custom) =>  'custom!';
-String customFromJson(Map<dynamic, dynamic> json) => json['custom'] ?? 'supsup';
 
 @DataClass(immutable: true)
-class SeedModel {
-  bool big = false;
-  bool edible = true;
-  late int number;
+class TreeModel {
+  late String name;
+  double? averageHeight;
 }
 
-const orangeJson = {
-  'big': true,
-  'color': 'orange',
-  'liked_by': ['Nancy'],
-  'name': 'orange',
-  'shape': 'round',
-};
+Tree treeFromJson(dynamic json) =>
+    json is Map ? Tree.fromJson(json) : Tree(name: 'Imaginary tree');
+
+Future<void> listener(path, {next, prev, toJson}) async =>
+    print('$path: $prev -> $next');
