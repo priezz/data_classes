@@ -299,7 +299,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
 
-      '@override $modelName get thisModel => _model;\n',
+      '@override $modelName get \$model => _model;\n',
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
       for (final field in fields)

@@ -74,7 +74,7 @@ abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
   Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
 
   T copyWith() => copy();
-  TModel get thisModel;
+  TModel get $model;
   Map toJson() => {};
 }
 
