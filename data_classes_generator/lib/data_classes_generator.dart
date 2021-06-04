@@ -56,7 +56,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       originalClass.name.length - modelSuffix.length,
     );
     final modelName = originalClass.name;
-    final modelBuilderName = '_${modelName}Builder';
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
@@ -194,12 +193,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
               ?.replaceAll('/// {@nodoc}\n', '')
               .replaceAll('{@nodoc}', '') ??
           '',
-
-      ..._generateModelBuilder(modelName, modelBuilderName, fields),
-
       if (immutable) '@immutable',
       'class $className extends IDataClass<$className, $modelName> {',
-      'final $modelName _model = $modelName();\n',
+      '@override final $modelName _model = $modelName();\n',
 
       /// The field members.
       for (final field in fields) ...[
@@ -221,16 +217,13 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '..${field.name} = ${field.name} ?? b.${field.name}',
       ',);\n',
 
-      'factory $className.from($className source) => $className.build((b) => b.withValuesFrom(source._model));\n',
+      'factory $className.from($className source) => $className.build((b) => _modelCopy(source._model, b));\n',
 
-      'factory $className.fromModel($modelName source) => $className.build((b) => b.withValuesFrom(source));\n',
+      'factory $className.fromModel($modelName source) => $className.build((b) => _modelCopy(source, b));\n',
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
-      '$className.build(DataClassBuilder<$modelBuilderName>? build) {\n',
-      'final builder = $modelBuilderName(_model);',
-      'build?.call(builder);',
-      '_updateModel(builder.build());',
-      '\n',
+      '$className.build(DataClassBuilder<$modelName>? build) {\n',
+      'build?.call(_model);\n',
       // for (final field in fields)
       //   if (!_isNullable(field)) 'assert(_model.${field.name} != null);',
       '}\n',
@@ -266,17 +259,11 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       /// copy
       '/// Creates a new instance of [$className], which is a copy of this with some changes',
-      '@override $className copy([DataClassBuilder<$modelBuilderName>? update]) => $className.build((builder) {',
-      '  update?.call(builder.withValuesFrom(_model));',
-      if (childrenListener != null)
-        '  _notifyOnPropChanges(_model, builder.build());',
+      '@override $className copy([DataClassBuilder<$modelName>? update]) => $className.build((builder) {',
+      '  _modelCopy(_model, builder);',
+      '  update?.call(builder);',
+      if (childrenListener != null) '  _notifyOnPropChanges(_model, builder);',
       '});',
-      '\n',
-      '@override Future<$className> copyAsync([DataClassAsyncBuilder<$modelBuilderName>? update]) async {'
-          'final builder = $modelBuilderName(_model);'
-          'await update?.call(builder);'
-          'return $className.fromModel(builder.build());'
-          '}',
 
       /// copyWith
       if (generateCopyWith) ...[
@@ -305,8 +292,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       '@override $modelName get thisModel => _model;\n',
 
-      'void _updateModel($modelName updated) => _model',
-      for (final field in fields) '..${field.name} = updated.${field.name}',
+      'static void _modelCopy($modelName source, $modelName dest,) => dest',
+      for (final field in fields)
+        '..${field.name} = source.${field.name} ${_isNullable(field) ? '?? dest.${field.name}' : ''}',
       ';\n',
 
       if (childrenListener != null) ...[
@@ -383,45 +371,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     ].expand((line) => [line, '\n']));
 
     return buffer.toString();
-  }
-
-  List<String> _generateModelBuilder(
-    String modelName,
-    String modelBuilderName,
-    Set<FieldElement> fields,
-  ) {
-    List<String> _generateField(FieldElement field) {
-      final name = field.displayName;
-      final typeStr = field.type.getDisplayString(withNullability: true);
-      final typeNoNullability =
-          field.type.getDisplayString(withNullability: false);
-
-      return [
-        '$typeNoNullability? _$name;',
-        '$typeStr get $name => _$name ?? _source.$name;',
-        'set $name($typeStr $name) => _$name = $name;',
-        '\n',
-      ];
-    }
-
-    return [
-      'class $modelBuilderName extends IModelBuilder<$modelName> {',
-      '$modelBuilderName(this._source);',
-      'final $modelName _source;\n',
-      for (final field in fields) ..._generateField(field),
-      '$modelBuilderName withValuesFrom($modelName model) {',
-      for (final field in fields)
-        '${field.displayName} = model.${field.displayName};',
-      '\n',
-      'return this;',
-      '}',
-      '\n',
-      '$modelName build() => $modelName()',
-      for (final field in fields)
-        '..${field.displayName} = _${field.displayName} ?? _source.${field.displayName}',
-      ';',
-      '}'
-    ];
   }
 
   String _generateFieldSerializer(
