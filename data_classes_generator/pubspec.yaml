@@ -12,7 +12,6 @@ dependencies:
   data_classes:
     git:
       url: https://github.com/priezz/data_classes.git
-      ref: null_safety
       path: data_classes
   dartx: ^0.7.1
   source_gen: ^1.0.1
