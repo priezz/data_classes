@@ -8,6 +8,8 @@ List<String> _generateFieldDeserializer(
   final customDeserializer = field.customDeserializer;
   final accessor =
       "json['${field.jsonKey ?? (convertToSnakeCase ? _camelToSnake(fieldName) : fieldName)}']";
+  final shouldForceUnwrap = field.type.isRequired &&
+      (!field.hasInitializer || field.type.hasFromJson);
 
   return [
     if (customDeserializer != null)
@@ -23,8 +25,10 @@ List<String> _generateFieldDeserializer(
       if (field.type.isRequired &&
           field.hasInitializer &&
           !field.type.hasFromJson)
-        'if ($fieldName != null)',
-      'model.$fieldName = $fieldName;\n',
+        'if ($fieldName != null)'
+      else if (shouldForceUnwrap)
+        "assert($fieldName != null, 'Attempted to assign null value to non-nullable required field: `$fieldName`.',);",
+      'model.$fieldName = $fieldName${shouldForceUnwrap ? '!' : ''};',
     ] else if (field.type.isIterable)
       ..._generateIterableDeserializer(
         field.type,
@@ -38,7 +42,8 @@ List<String> _generateFieldDeserializer(
         accessor,
         fieldName: field.displayName,
         addNullCheck: field.hasInitializer && field.type.isRequired,
-      )
+      ),
+    '\n',
   ];
 }
 
@@ -57,27 +62,26 @@ List<String> _generateLeafDeserializer(
       .getDisplayString(withNullability: !type.hasFromJson && !type.isEnum)
       .removePrefix('[')
       .removeSuffix(']');
-  final suffix = type.isRequired && forceUnwrap ? '!' : '';
   final customDeserializer = type.element?.customDeserializer;
 
   return [
     if (customDeserializer != null)
       '$customDeserializer($accessor)'
     else if (type.isDartCoreInt)
-      "castOrNull<int>($accessor) ?? int.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      "castOrNull<int>($accessor) ?? int.tryParse(castOrNull<String>($accessor) ?? '')"
     else if (type.isDartCoreDouble)
-      "castOrNull<num>($accessor)?.toDouble() ?? double.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      "castOrNull<num>($accessor)?.toDouble() ?? double.tryParse(castOrNull<String>($accessor) ?? '')"
     else if (type.hasFromJson) ...[
       if (!type.isRequired) '$accessor == null ? null : ',
       '$typeStr.fromJson($accessor ?? {})',
     ] else if (type.isEnum)
-      "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)$suffix"
+      "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)"
     else if (type.isDateTime)
-      "DateTime.tryParse(castOrNull<String>($accessor) ?? '')$suffix"
+      "DateTime.tryParse(castOrNull<String>($accessor) ?? '')"
     else if (type.isDynamic)
       accessor
     else
-      'castOrNull<$typeStr>($accessor)$suffix',
+      'castOrNull<$typeStr>($accessor)',
   ];
 }
 
