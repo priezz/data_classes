@@ -171,21 +171,23 @@ FruitModel _$FruitModelFromJson(Map<dynamic, dynamic> json) {
     }));
 
   final name = castOrNull<String>(json['name']);
-  assert(
-    name != null,
-    'Attempted to assign null value to non-nullable required field: `name`.',
-  );
-  model.name = name!;
+  if (name == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `name`.',
+    );
+  }
+  model.name = name;
 
   model.tree = treeFromJson(json['tree']);
 
   final weight = castOrNull<num>(json['weightInGrams'])?.toDouble() ??
       double.tryParse(castOrNull<String>(json['weightInGrams']) ?? '');
-  assert(
-    weight != null,
-    'Attempted to assign null value to non-nullable required field: `weight`.',
-  );
-  model.weight = weight!;
+  if (weight == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `weight`.',
+    );
+  }
+  model.weight = weight;
 
   return model;
 }
@@ -292,11 +294,12 @@ TreeModel _$TreeModelFromJson(Map<dynamic, dynamic> json) {
   final model = TreeModel();
 
   final name = castOrNull<String>(json['name']);
-  assert(
-    name != null,
-    'Attempted to assign null value to non-nullable required field: `name`.',
-  );
-  model.name = name!;
+  if (name == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `name`.',
+    );
+  }
+  model.name = name;
 
   final averageHeight = castOrNull<num>(json['averageHeight'])?.toDouble() ??
       double.tryParse(castOrNull<String>(json['averageHeight']) ?? '');

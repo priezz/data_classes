@@ -22,9 +22,12 @@ List<String> _generateFieldDeserializer(
           field.hasInitializer &&
           !field.type.hasFromJson)
         'if ($fieldName != null)'
-      else if (shouldForceUnwrap)
-        "assert($fieldName != null, 'Attempted to assign null value to non-nullable required field: `$fieldName`.',);",
-      'model.$fieldName = $fieldName${shouldForceUnwrap ? '!' : ''};',
+      else if (shouldForceUnwrap) ...[
+        'if ($fieldName == null){',
+        "throw JsonDeserializationError('Attempted to assign null value to non-nullable required field: `$fieldName`.',);",
+        '}',
+      ],
+      'model.$fieldName = $fieldName;',
     ] else if (field.type.isIterable)
       ..._generateIterableDeserializer(
         field.type,
