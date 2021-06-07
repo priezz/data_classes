@@ -16,11 +16,7 @@ List<String> _generateFieldDeserializer(
       'model.${field.displayName} = $customDeserializer($accessor);'
     else if (field.type.isLeaf) ...[
       'final ${field.displayName} = ',
-      ..._generateLeafDeserializer(
-        field.type,
-        accessor,
-        forceUnwrap: !field.hasInitializer,
-      ),
+      ..._generateLeafDeserializer(field.type, accessor),
       ';',
       if (field.type.isRequired &&
           field.hasInitializer &&
@@ -47,11 +43,7 @@ List<String> _generateFieldDeserializer(
   ];
 }
 
-List<String> _generateLeafDeserializer(
-  DartType type,
-  String accessor, {
-  bool forceUnwrap = false,
-}) {
+List<String> _generateLeafDeserializer(DartType type, String accessor) {
   assert(
     type.isLeaf,
     '''Json leaf must be one of these types: [bool, double, int, String, DateTime]'''
