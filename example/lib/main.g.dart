@@ -170,12 +170,23 @@ FruitModel _$FruitModelFromJson(Map<dynamic, dynamic> json) {
       return key != null ? MapEntry(key, value) : null;
     }));
 
-  final name = castOrNull<String>(json['name'])!;
+  final name = castOrNull<String>(json['name']);
+  if (name == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `name`.',
+    );
+  }
   model.name = name;
 
   model.tree = treeFromJson(json['tree']);
+
   final weight = castOrNull<num>(json['weightInGrams'])?.toDouble() ??
-      double.tryParse(castOrNull<String>(json['weightInGrams']) ?? '')!;
+      double.tryParse(castOrNull<String>(json['weightInGrams']) ?? '');
+  if (weight == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `weight`.',
+    );
+  }
   model.weight = weight;
 
   return model;
@@ -282,7 +293,12 @@ class Tree extends IDataClass<Tree, TreeModel> {
 TreeModel _$TreeModelFromJson(Map<dynamic, dynamic> json) {
   final model = TreeModel();
 
-  final name = castOrNull<String>(json['name'])!;
+  final name = castOrNull<String>(json['name']);
+  if (name == null) {
+    throw JsonDeserializationError(
+      'Attempted to assign null value to non-nullable required field: `name`.',
+    );
+  }
   model.name = name;
 
   final averageHeight = castOrNull<num>(json['averageHeight'])?.toDouble() ??

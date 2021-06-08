@@ -59,6 +59,11 @@ class Serializable {
   final dynamic Function(dynamic)? toJson;
 }
 
+class JsonDeserializationError implements Exception {
+  JsonDeserializationError(this.cause);
+  String cause;
+}
+
 // @immutable
 // class GenerateValueGetters {
 //   const GenerateValueGetters({
