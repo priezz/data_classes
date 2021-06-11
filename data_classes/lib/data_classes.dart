@@ -103,7 +103,7 @@ int hashList(Iterable<Object> arguments) {
   return 0x1fffffff & (result + ((0x00003fff & result) << 15));
 }
 
-T? castOrNull<T>(dynamic x) => x is T ? x : null;
+T? castOrNull<T>(dynamic x) => x != null && x is T ? x : null;
 bool eqDeep<T>(T e1, T e2) =>
     _compare(e1, e2, const DeepCollectionEquality().equals);
 bool eqDeepUnordered<T>(T e1, T e2) =>
