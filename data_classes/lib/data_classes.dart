@@ -62,6 +62,9 @@ class Serializable {
 class JsonDeserializationError implements Exception {
   JsonDeserializationError(this.cause);
   String cause;
+
+  @override
+  String toString() => cause;
 }
 
 // @immutable
