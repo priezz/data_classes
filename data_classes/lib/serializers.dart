@@ -1,68 +1,30 @@
 part of 'data_classes.dart';
 
-Map<String, dynamic> serializeToJson(dynamic value) =>
-    _serializeEntryToJson('', value)[''];
+dynamic serializeToJson(dynamic obj) {
+  if (obj == null) return null;
 
-Map<String, dynamic> _serializeEntryToJson(dynamic key, dynamic value) {
-  final keyStr = _serializePrimitive(key, castToString: true);
-
-  if (value == null) return {};
-
-  if (_isPrimitive(value)) return {keyStr: _serializePrimitive(value)};
-
-  if (value is Iterable)
+  if (obj is Map) {
     return {
-      keyStr: value
-          .map((v) => _serializeEntryToJson('', v)[''])
-          .whereNotNull()
-          .toList()
+      for (final entry in obj.entries)
+        '${serializeToJson(entry.key)}': serializeToJson(entry.value),
     };
+  }
 
-  if (value is Map)
-    return {
-      keyStr: {
-        for (final entry in value.entries)
-          ..._serializeEntryToJson(entry.key, entry.value)
-      }
-    };
+  if (obj is Iterable) {
+    return [
+      for (final entry in obj) serializeToJson(entry),
+    ];
+  }
 
-  if (value is IDataClass)
-    return {
-      keyStr: _serializeEntryToJson('', value.toJson())[''],
-    };
+  if (obj is IDataClass) return obj.toJson();
 
-  throw Exception('Invalid json field: $value');
-}
+  if (obj is bool || obj is num || obj is String) return obj;
 
-bool _isPrimitive(dynamic value) =>
-    value is bool ||
-    value is DateTime ||
-    value is String ||
-    value is num ||
-    (value is Object && value.isEnum);
+  if (obj is DateTime) return obj.toIso8601String();
 
-dynamic _serializePrimitive(
-  dynamic value, {
-  bool castToString = false,
-}) {
-  assert(
-    _isPrimitive(value),
-    'Value must be a String, DateTime, num or Enum! $value',
-  );
+  if (obj is Object && obj.isEnum) return obj.asString();
 
-  dynamic serialized;
-
-  if (value is String) serialized = value;
-
-  if (value is DateTime) serialized = value.toIso8601String();
-
-  if (value is bool || value is num) serialized = value;
-
-  if (value is Object && value.isEnum) serialized = value.asString();
-
-  return !castToString && (value is num || value is bool)
-      ? serialized
-      : '$serialized';
+  throw Exception('Invalid json field: $obj');
 }
 
 T? deserializePrimitive<T>(
@@ -77,23 +39,12 @@ T? deserializePrimitive<T>(
 
   if (T is String) deserialized = valueStr;
 
-  if (T is bool) deserialized = _boolFromString(valueStr);
+  if (T is bool)
+    deserialized = valueStr == null ? null : valueStr.toLowerCase() == 'true';
 
   if (T is double) deserialized = double.tryParse(valueStr ?? '');
 
   if (T is int) deserialized = int.tryParse(valueStr ?? '');
 
   return deserialized as T ?? defaultValue;
-}
-
-bool? _boolFromString(String? str) {
-  if (str == null) return null;
-
-  final strLower = str.toLowerCase();
-
-  return strLower == 'true'
-      ? true
-      : strLower == 'false'
-          ? false
-          : null;
 }

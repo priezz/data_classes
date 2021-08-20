@@ -294,7 +294,13 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '$className.fromJson(json);\n',
 
         /// toJson
-        '@override Map<dynamic, dynamic> toJson() => _\$${modelName}ToJson(_model);\n',
+        '@override Map<dynamic, dynamic> toJson() => serializeToJson({',
+        for (final field in fields)
+          _generateFieldSerializer(
+            field,
+            convertToSnakeCase: convertToSnakeCase,
+          ),
+        '});\n',
       ],
       if (builtValueSerializer)
         'static Serializer<$className> get serializer => _\$${className}Serializer();',
@@ -365,15 +371,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
           ),
         'return model;',
         '}',
-        '\n\n',
-        'Map<String, dynamic> _\$${modelName}ToJson($modelName instance) =>',
-        'serializeToJson({',
-        for (final field in fields)
-          _generateFieldSerializer(
-            field,
-            convertToSnakeCase: convertToSnakeCase,
-          ),
-        '});',
       ]
     ].expand((line) => [line, '\n']));
 
