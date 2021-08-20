@@ -302,8 +302,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override $modelName get \$model => _model;\n',
 
       'static void _modelCopy($modelName source, $modelName dest,) => dest',
-      for (final field in fields)
-        '..${field.name} = source.${field.name}',
+      for (final field in fields) '..${field.name} = source.${field.name}',
       ';\n',
 
       if (childrenListener != null) ...[
@@ -316,7 +315,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         "        '$objectNamePrefix\$name',",
         '        next: nextValue,',
         '        prev: prevValue,',
-        "        toJson: () => _\$${modelName}ToJson(set($modelName(), nextValue))[name],",
         '      );',
         '    }',
         '  }\n',
