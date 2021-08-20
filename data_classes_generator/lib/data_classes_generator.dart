@@ -384,7 +384,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     final customName = field.jsonKey;
     final customSerializer =
         field.customSerializer ?? field.type.element?.customSerializer;
-    final getter = 'instance.${field.name}';
+    final getter = '_model.${field.name}';
     final invocation =
         customSerializer != null ? '$customSerializer($getter)' : getter;
     final jsonKey = customName ??
