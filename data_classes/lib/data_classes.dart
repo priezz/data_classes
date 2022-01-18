@@ -126,35 +126,16 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   return true;
 }
 
-/// fromJson helpers
-bool? boolFromJson(dynamic json) {
-  final bool? result = castOrNull<bool>(json);
-  if (result != null) return result;
-
-  final String? str = castOrNull<String>(json)?.toLowerCase();
-  return str == 'true' || str == 'false' ? false : null;
-}
-
-DateTime? dateTimeFromJson(dynamic json) =>
-    DateTime.tryParse(castOrNull<String>(json) ?? '');
-double? doubleFromJson(dynamic json) => json == null
-    ? null
-    : json is num
-        ? json.toDouble()
-        : (double.tryParse(castOrNull<String>(json) ?? '') ?? double.nan);
-T? enumFromJson<T extends Enum>(dynamic json, Iterable<T> values) =>
-    enumFromString(castOrNull<String>(json), values);
-
 /// Get the enum value from a string [key].
 ///
 /// Returns null if [key] is invalid.
 T? enumFromString<T extends Enum>(String? key, Iterable<T> values) =>
     key == null ? null : values.firstWhereOrNull((v) => key == v.name);
 
-int? intFromJson(dynamic json) =>
+int? intValueFromJson(dynamic json) =>
     castOrNull<int>(json) ?? int.tryParse(castOrNull<String>(json) ?? '');
 
-void setFieldFromJson<T>(
+void setModelField<T>(
   Map<dynamic, dynamic> json,
   String fieldName,
   void Function(T? v) setter, {
@@ -175,14 +156,46 @@ void setFieldFromJson<T>(
   if (nullable || value != null) setter(value);
 }
 
-D? dataClassFromJson<D>(
-  dynamic json,
-  D Function(Map json) fromJson,
-) {
-  final Map? map = castOrNull<Map>(json);
+extension StringX on String {
+  String camelToSnake() => replaceAllMapped(
+        RegExp('[A-Z]+'),
+        (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
+      );
 
-  return map == null ? null : fromJson(map);
+  String snakeToCamel() {
+    final result = StringBuffer();
+    toLowerCase().split(RegExp('[^A-Za-z0-9]+')).asMap().forEach(
+          (i, part) => result.write(
+            part.isEmpty
+                ? ''
+                : (i > 0 ? part[0].toUpperCase() : part[0]) + part.substring(1),
+          ),
+        );
+
+    return result.toString();
+  }
 }
+
+/// fromJson helpers
+bool? boolValueFromJson(dynamic json) {
+  final bool? result = castOrNull<bool>(json);
+  if (result != null) return result;
+
+  final String? str = castOrNull<String>(json)?.toLowerCase();
+  return str == 'true' || str == 'false' ? false : null;
+}
+
+DateTime? dateTimeValueFromJson(dynamic json) =>
+    DateTime.tryParse(castOrNull<String>(json) ?? '');
+
+double? doubleValueFromJson(dynamic json) => json == null
+    ? null
+    : json is num
+        ? json.toDouble()
+        : (double.tryParse(castOrNull<String>(json) ?? '') ?? double.nan);
+
+T? enumValueFromJson<T extends Enum>(dynamic json, Iterable<T> values) =>
+    enumFromString(castOrNull<String>(json), values);
 
 Iterable<V>? iterableValueFromJson<V>(
   dynamic json, {
@@ -203,14 +216,6 @@ List<V>? listValueFromJson<V>(
 }) =>
     iterableValueFromJson(json, value: value, valueNullable: valueNullable)
         ?.toList();
-
-Set<V>? setValueFromJson<V>(
-  dynamic json, {
-  V? Function(dynamic v)? value,
-  bool valueNullable = false,
-}) =>
-    iterableValueFromJson(json, value: value, valueNullable: valueNullable)
-        ?.toSet();
 
 Map<K, V>? mapValueFromJson<K, V>(
   dynamic json, {
@@ -234,22 +239,19 @@ Map<K, V>? mapValueFromJson<K, V>(
   return map?.cast<K, V>();
 }
 
-extension StringX on String {
-  String camelToSnake() => replaceAllMapped(
-        RegExp('[A-Z]+'),
-        (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
-      );
+Set<V>? setValueFromJson<V>(
+  dynamic json, {
+  V? Function(dynamic v)? value,
+  bool valueNullable = false,
+}) =>
+    iterableValueFromJson(json, value: value, valueNullable: valueNullable)
+        ?.toSet();
 
-  String snakeToCamel() {
-    final result = StringBuffer();
-    toLowerCase().split(RegExp('[^A-Za-z0-9]+')).asMap().forEach(
-          (i, part) => result.write(
-            part.isEmpty
-                ? ''
-                : (i > 0 ? part[0].toUpperCase() : part[0]) + part.substring(1),
-          ),
-        );
+D? valueFromJson<D>(
+  dynamic json,
+  D Function(Map json) fromJson,
+) {
+  final Map? map = castOrNull<Map>(json);
 
-    return result.toString();
-  }
+  return map == null ? null : fromJson(map);
 }

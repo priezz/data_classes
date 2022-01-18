@@ -22,7 +22,7 @@ List<String> generateFieldDeserializer(
   );
 
   return [
-    'setFieldFromJson<$type>(',
+    'setModelField<$type>(',
     '  json,',
     "  '$fieldJsonName',",
     '  (v) => model.$fieldName = v${type.isRequired ? '!' : ''},',
@@ -37,48 +37,44 @@ String? _generateValueDeserializer({
   required String accessor,
   required DartType fieldType,
   String? customDeserializer,
-}) =>
-    customDeserializer != null
-        ? '$customDeserializer($accessor)'
-        : (fieldType.isDartCoreMap
-                ? _generateMapDeserializer
-                : fieldType.isIterable
-                    ? _generateIterableDeserializer
-                    : _generateLeafDeserializer)
-            .call(accessor: accessor, fieldType: fieldType);
-
-String? _generateLeafDeserializer({
-  required String accessor,
-  required DartType fieldType,
 }) {
-  assert(
-    fieldType.isLeaf,
-    '''Json leaf must be one of these types: [bool, Enum, DateTime, double, int, String]'''
-    '''Given type: $fieldType.''',
-  );
-
-  final typeStr = fieldType
-      .getDisplayString(
-        withNullability: !fieldType.hasFromJson && !fieldType.isEnum,
-      )
-      .removePrefix('[')
-      .removeSuffix(']');
-
-  return fieldType.isDartCoreBool
-      ? 'boolFromJson($accessor)'
-      : fieldType.isDartCoreInt
-          ? 'intFromJson($accessor)'
-          : fieldType.isDartCoreDouble
-              ? 'doubleFromJson($accessor)'
-              : fieldType.isDateTime
-                  ? 'dateTimeFromJson($accessor)'
-                  : fieldType.isEnum
-                      ? 'enumFromJson($accessor, $typeStr.values)'
-                      : fieldType.hasFromJson
-                          ? 'dataClassFromJson($accessor, $typeStr.fromJson)'
-                          : fieldType.isDynamic
-                              ? accessor
-                              : null;
+  late String typeStr;
+  if (fieldType.hasFromJson || fieldType.isEnum) {
+    typeStr = fieldType.getDisplayString(withNullability: false);
+    // typeStr = fieldType
+    // .getDisplayString(
+    //   withNullability: !fieldType.hasFromJson && !fieldType.isEnum,
+    // )
+    // .removePrefix('[')
+    // .removeSuffix(']');
+  }
+  return customDeserializer != null
+      ? '$customDeserializer($accessor)'
+      : fieldType.isDartCoreMap
+          ? _generateMapDeserializer(
+              accessor: accessor,
+              fieldType: fieldType,
+            )
+          : fieldType.isIterable
+              ? _generateIterableDeserializer(
+                  accessor: accessor,
+                  fieldType: fieldType,
+                )
+              : fieldType.isDartCoreBool
+                  ? 'boolValueFromJson($accessor)'
+                  : fieldType.isDartCoreInt
+                      ? 'intValueFromJson($accessor)'
+                      : fieldType.isDartCoreDouble
+                          ? 'doubleValueFromJson($accessor)'
+                          : fieldType.isDateTime
+                              ? 'dateTimeValueFromJson($accessor)'
+                              : fieldType.isEnum
+                                  ? 'enumValueFromJson($accessor, $typeStr.values)'
+                                  : fieldType.hasFromJson
+                                      ? 'valueFromJson($accessor, $typeStr.fromJson)'
+                                      : fieldType.isDynamic
+                                          ? accessor
+                                          : null;
 }
 
 String _generateIterableDeserializer({
@@ -119,8 +115,8 @@ String _generateMapDeserializer({
   final DartType valueType = typeParams.last;
 
   assert(
-    keyType.isLeaf,
-    '''Map key must be one of these types: [bool, double, enum, int, DateTime, String]'''
+    keyType.isSimple,
+    '''Map key type must be one of these types [bool, DateTime, double, enum, int, String] or should have `fromJson()` constructor.'''
     '''Given type: $keyType.''',
   );
 
@@ -164,16 +160,16 @@ extension on DartType {
 
   bool get isIterable => isDartCoreIterable || isDartCoreList || isDartCoreSet;
 
-  bool get isLeaf =>
+  bool get isSimple =>
       isDartCoreBool ||
       isDartCoreDouble ||
       isDartCoreInt ||
       isDartCoreString ||
-      isDateTime ||
       isEnum ||
-      isDynamic ||
-      hasFromJson ||
-      isDartCoreObject;
+      isDateTime ||
+      // isDynamic ||
+      // isDartCoreObject ||
+      hasFromJson;
 
   bool get isRequired => nullabilitySuffix != NullabilitySuffix.question;
 
