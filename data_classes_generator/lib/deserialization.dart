@@ -1,226 +1,169 @@
-part of 'data_classes_generator.dart';
+import 'package:analyzer/dart/constant/value.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/nullability_suffix.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:dartx/dartx.dart';
 
-List<String> _generateFieldDeserializer(
+import 'package:data_classes/data_classes.dart';
+
+List<String> generateFieldDeserializer(
   FieldElement field, {
   bool convertToSnakeCase = false,
 }) {
-  final fieldName = field.displayName;
-  final customDeserializer = field.customDeserializer;
-  final accessor =
-      "json['${field.jsonKey ?? (convertToSnakeCase ? _camelToSnake(fieldName) : fieldName)}']";
-  final shouldForceUnwrap = field.type.isRequired &&
-      (!field.hasInitializer || field.type.hasFromJson);
+  final DartType type = field.type;
+  final String fieldName =
+      field.displayName.isNotEmpty ? field.displayName : 'value';
+  final String fieldJsonName = field.jsonKey ??
+      (convertToSnakeCase ? fieldName.camelToSnake() : fieldName);
+  final String? deserializer = _generateValueDeserializer(
+    accessor: 'j',
+    customDeserializer: field.customDeserializer,
+    fieldType: type,
+  );
 
   return [
-    if (customDeserializer != null)
-      'model.${field.displayName} = $customDeserializer($accessor);'
-    else if (field.type.isLeaf) ...[
-      'final ${field.displayName} = ',
-      ..._generateLeafDeserializer(field.type, accessor),
-      ';',
-      if (field.type.isRequired &&
-          field.hasInitializer &&
-          !field.type.hasFromJson)
-        'if ($fieldName != null)'
-      else if (shouldForceUnwrap) ...[
-        'if ($fieldName == null){',
-        "throw JsonDeserializationError('Attempted to assign null value to non-nullable required field: `$fieldName`.',);",
-        '}',
-      ],
-      'model.$fieldName = $fieldName;',
-    ] else if (field.type.isIterable)
-      ..._generateIterableDeserializer(
-        field.type,
-        accessor,
-        fieldName: field.displayName,
-        addNullCheck: field.hasInitializer && field.type.isRequired,
-      )
-    else if (field.type.isDartCoreMap)
-      ..._generateMapDeserializer(
-        field.type,
-        accessor,
-        fieldName: field.displayName,
-        addNullCheck: field.hasInitializer && field.type.isRequired,
-      ),
-    '\n',
+    'setFieldFromJson<$type>(',
+    '  json,',
+    "  '$fieldJsonName',",
+    '  (v) => model.$fieldName = v${type.isRequired ? '!' : ''},',
+    if (deserializer != null) '  getter: (j) => $deserializer,',
+    if (type.isRequired)
+      field.hasInitializer ? '  nullable: false,' : '  required: true,',
+    ');\n',
   ];
 }
 
-List<String> _generateLeafDeserializer(DartType type, String accessor) {
+String? _generateValueDeserializer({
+  required String accessor,
+  required DartType fieldType,
+  String? customDeserializer,
+}) =>
+    customDeserializer != null
+        ? '$customDeserializer($accessor)'
+        : (fieldType.isDartCoreMap
+                ? _generateMapDeserializer
+                : fieldType.isIterable
+                    ? _generateIterableDeserializer
+                    : _generateLeafDeserializer)
+            .call(accessor: accessor, fieldType: fieldType);
+
+String? _generateLeafDeserializer({
+  required String accessor,
+  required DartType fieldType,
+}) {
   assert(
-    type.isLeaf,
-    '''Json leaf must be one of these types: [bool, double, int, String, DateTime]'''
-    '''Given type: $type.''',
+    fieldType.isLeaf,
+    '''Json leaf must be one of these types: [bool, Enum, DateTime, double, int, String]'''
+    '''Given type: $fieldType.''',
   );
 
-  final typeStr = type
-      .getDisplayString(withNullability: !type.hasFromJson && !type.isEnum)
+  final typeStr = fieldType
+      .getDisplayString(
+        withNullability: !fieldType.hasFromJson && !fieldType.isEnum,
+      )
       .removePrefix('[')
       .removeSuffix(']');
-  final customDeserializer = type.element?.customDeserializer;
 
-  return [
-    if (customDeserializer != null)
-      '$customDeserializer($accessor)'
-    else if (type.isDartCoreInt)
-      "castOrNull<int>($accessor) ?? int.tryParse(castOrNull<String>($accessor) ?? '')"
-    else if (type.isDartCoreDouble)
-      "castOrNull<num>($accessor)?.toDouble() ?? double.tryParse(castOrNull<String>($accessor) ?? '')"
-    else if (type.hasFromJson) ...[
-      if (!type.isRequired) '$accessor == null ? null : ',
-      '$typeStr.fromJson($accessor ?? {})',
-    ] else if (type.isEnum)
-      "enumFromString(castOrNull<String>($accessor) ?? '', $typeStr.values)"
-    else if (type.isDateTime)
-      "DateTime.tryParse(castOrNull<String>($accessor) ?? '')"
-    else if (type.isDynamic)
-      accessor
-    else
-      'castOrNull<$typeStr>($accessor)',
-  ];
+  return fieldType.isDartCoreBool
+      ? 'boolFromJson($accessor)'
+      : fieldType.isDartCoreInt
+          ? 'intFromJson($accessor)'
+          : fieldType.isDartCoreDouble
+              ? 'doubleFromJson($accessor)'
+              : fieldType.isDateTime
+                  ? 'dateTimeFromJson($accessor)'
+                  : fieldType.isEnum
+                      ? 'enumFromJson($accessor, $typeStr.values)'
+                      : fieldType.hasFromJson
+                          ? 'dataClassFromJson($accessor, $typeStr.fromJson)'
+                          : fieldType.isDynamic
+                              ? accessor
+                              : null;
 }
 
-List<String> _generateIterableDeserializer(
-  DartType type,
-  String accessor, {
-  bool addNullCheck = false,
-  String? fieldName,
-  String? outputOperator,
+String _generateIterableDeserializer({
+  required String accessor,
+  required DartType fieldType,
 }) {
-  assert(type.isIterable, 'Field type must be Iterable! $type');
-
-  final typeParameter = type.genericTypes.firstOrNull;
-
+  final Iterable<DartType> typeParams = fieldType.genericTypes;
   assert(
-    typeParameter != null,
-    'All Iterables must have their type explicitly set! $type',
+    typeParams.length != 1,
+    'Type must be an Iterable with type parameter explicitly defined: $fieldType!',
   );
 
-  final isRoot = fieldName != null;
-  final fieldGetter = fieldName ?? 'val';
-  final fieldCall = !type.isRequired
-      ? '$fieldGetter?'
-      : addNullCheck
-          ? fieldGetter
-          : '($fieldGetter ?? [])';
-  final mapFn = typeParameter!.isRequired ? 'mapNotNull' : 'map';
+  final DartType valueType = typeParams.first;
+  final String? valueDeserializer =
+      _generateValueDeserializer(accessor: 'v', fieldType: valueType);
 
   return [
-    if (!isRoot) '(e){',
-    'final $fieldGetter = castOrNull<Iterable>($accessor);',
-    if (!isRoot) '\n',
-    if (addNullCheck) 'if ($fieldName != null)',
-    outputOperator ?? (isRoot ? 'model.$fieldName =' : 'return'),
-    ' $fieldCall.$mapFn(',
-    if (typeParameter.isIterable)
-      ..._generateIterableDeserializer(typeParameter, 'e')
-    else if (typeParameter.isDartCoreMap) ...[
-      ..._generateMapDeserializer(typeParameter, 'e',
-          assignmentExpression: 'return'),
-      ';}'
-    ] else if (typeParameter.isLeaf) ...[
-      '(e) => ',
-      ..._generateLeafDeserializer(
-        typeParameter,
-        'e',
-      ),
-    ],
+    '${fieldType.isDartCoreList ? 'listValueFromJson' : fieldType.isDartCoreSet ? 'setValueFromJson' : 'iterableValueFromJson'}<$valueType>(',
+    '  $accessor,',
+    if (valueDeserializer != null) '  value: (v) => $valueDeserializer,',
+    if (!valueType.isRequired) '  valueNullable: true,',
     ')',
-    if (!type.isDartCoreIterable) '.to${type.nameWithoutTypeParams}()',
-    ';\n',
-    if (!isRoot) '}',
-  ];
+  ].join();
 }
 
-List<String> _generateMapDeserializer(
-  DartType type,
-  String accessor, {
-  bool addNullCheck = false,
-  String? fieldName,
-  String? assignmentExpression,
+String _generateMapDeserializer({
+  required String accessor,
+  required DartType fieldType,
 }) {
-  final typeParams = type.genericTypes;
+  final Iterable<DartType> typeParams = fieldType.genericTypes;
 
   assert(
-    type.isDartCoreMap && typeParams.length == 2,
-    'Type must be a Map with both type parameters explicitly defined: $type!',
+    fieldType.isDartCoreMap && typeParams.length == 2,
+    'Type must be a Map with both type parameters explicitly defined: $fieldType!',
   );
 
-  final keyType = typeParams.first;
-  final valueType = typeParams.last;
+  final DartType keyType = typeParams.first;
+  final DartType valueType = typeParams.last;
 
   assert(
     keyType.isLeaf,
-    '''Map key must be one of these types: [bool, double, int, String]'''
+    '''Map key must be one of these types: [bool, double, enum, int, DateTime, String]'''
     '''Given type: $keyType.''',
   );
-  assert(
-    valueType.isLeaf || valueType.isIterable || valueType.isDartCoreMap,
-    '''Map value must be one of these types: [bool, double, int, String, enum, Map, Iterable]'''
-    '''Given type; $valueType''',
-  );
-  final isRoot = fieldName != null;
-  final fieldGetter = fieldName ?? 'val';
-  final fieldCall =
-      addNullCheck || !type.isRequired ? fieldGetter : '($fieldGetter ?? {})';
-  final shouldNullCheckValue = valueType.isRequired &&
-      !valueType.isIterable &&
-      !valueType.isDartCoreMap &&
-      !valueType.isDynamic;
+
+  final String? keyDeserializer =
+      _generateValueDeserializer(accessor: 'k', fieldType: keyType);
+  final String? valueDeserializer =
+      _generateValueDeserializer(accessor: 'v', fieldType: valueType);
 
   return [
-    if (!isRoot) '(e){',
-    'final $fieldGetter = castOrNull<Map>($accessor);',
-    if (addNullCheck) 'if ($fieldGetter != null)',
-    assignmentExpression ?? (isRoot ? 'model.$fieldName =' : 'return'),
-    if (!type.isRequired && !addNullCheck) ' $fieldGetter == null ? null : ',
-    'Map.fromEntries($fieldCall.entries.mapNotNull((e){',
-    'final key = ',
-    ..._generateLeafDeserializer(keyType, 'e.key'),
-    ';',
-    if (valueType.isLeaf) ...[
-      'final value = ',
-      ..._generateLeafDeserializer(valueType, 'e.value'),
-      ';'
-    ] else if (valueType.isIterable) ...[
-      ..._generateIterableDeserializer(
-        valueType,
-        'e.value',
-        fieldName: 'valueTyped',
-        outputOperator: 'final value =',
-      )
-    ] else if (valueType.isDartCoreMap)
-      ..._generateMapDeserializer(
-        valueType,
-        'e.value',
-        assignmentExpression: 'final value =',
-        fieldName: 'valueTyped',
-      ),
-    '\n',
-    if (!keyType.isRequired && !shouldNullCheckValue)
-      'return MapEntry(key, value)'
-    else ...[
-      'return ',
-      if (keyType.isRequired) 'key != null',
-      if (keyType.isRequired && shouldNullCheckValue) ' && ',
-      if (shouldNullCheckValue) 'value != null',
-      '? MapEntry(key, value) : null',
-    ],
-    ';})',
-    if (isRoot) ');\n' else ')',
-  ];
+    'mapValueFromJson<$keyType, $valueType>(',
+    '  $accessor,',
+    if (keyDeserializer != null) '  key: (k) => $keyDeserializer,',
+    if (!keyType.isRequired) '  keyNullable: true,',
+    if (valueDeserializer != null) '  value: (v) => $valueDeserializer,',
+    if (!valueType.isRequired) '  valueNullable: true,',
+    ')',
+  ].join();
 }
 
 extension on DartType {
+  // bool get hasFromJson {
+  //   if (element is ClassElement && element!.name == 'Package')
+  //     print(
+  //         'Package: ${(element as ClassElement).constructors.map((c) => c.displayName)}, ${(element as ClassElement).methods.map((c) => c.displayName)}');
+
+  //   return element is ClassElement
+  //       ? (element as ClassElement)
+  //           .constructors
+  //           .any((method) => method.displayName == 'fromJson')
+  //       : false;
+  // }
   bool get hasFromJson => element is ClassElement
-      ? (element as ClassElement)
-          .constructors
-          .any((method) => method.displayName == 'fromJson')
+      ? (element as ClassElement).constructors.any(
+          (method) => method.displayName == '${element!.displayName}.fromJson')
       : false;
+
   bool get isDateTime => getDisplayString(withNullability: false) == 'DateTime';
+
   bool get isEnum =>
       element is ClassElement ? (element as ClassElement).isEnum : false;
+
   bool get isIterable => isDartCoreIterable || isDartCoreList || isDartCoreSet;
+
   bool get isLeaf =>
       isDartCoreBool ||
       isDartCoreDouble ||
@@ -238,14 +181,14 @@ extension on DartType {
       ? (this as ParameterizedType).typeArguments
       : const [];
 
-  String get nameWithoutTypeParams {
-    final name = getDisplayString(withNullability: false);
-    final indexOfBracket = name.indexOf('<');
-    return indexOfBracket > 0 ? name.substring(0, indexOfBracket) : name;
-  }
+  // String get nameWithoutTypeParams {
+  //   final name = getDisplayString(withNullability: false);
+  //   final indexOfBracket = name.indexOf('<');
+  //   return indexOfBracket > 0 ? name.substring(0, indexOfBracket) : name;
+  // }
 }
 
-extension on Element {
+extension ElementX on Element {
   DartObject? get serializableAnnotation => metadata
       .firstOrNullWhere(
         (annotation) =>

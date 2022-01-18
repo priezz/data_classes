@@ -1,10 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
-// export 'dart:async';
-export 'package:collection/collection.dart'
-    hide IterableExtension, IterableNullableExtension;
-export 'package:dartx/dartx.dart' show IterableMapNotNull;
 export 'package:meta/meta.dart';
 
 part 'serializers.dart';
@@ -65,16 +61,6 @@ class JsonDeserializationError implements Exception {
   @override
   String toString() => cause;
 }
-
-// @immutable
-// class GenerateValueGetters {
-//   const GenerateValueGetters({
-//     this.usePrefix = false,
-//     this.generateNegations = true,
-//   });
-//   final bool usePrefix;
-//   final bool generateNegations;
-// }
 
 abstract class IDataClass<T extends IDataClass<T, TModel>, TModel> {
   T copy([DataClassBuilder<TModel>? update]);
@@ -140,29 +126,130 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   return true;
 }
 
+/// fromJson helpers
+bool? boolFromJson(dynamic json) {
+  final bool? result = castOrNull<bool>(json);
+  if (result != null) return result;
+
+  final String? str = castOrNull<String>(json)?.toLowerCase();
+  return str == 'true' || str == 'false' ? false : null;
+}
+
+DateTime? dateTimeFromJson(dynamic json) =>
+    DateTime.tryParse(castOrNull<String>(json) ?? '');
+double? doubleFromJson(dynamic json) => json == null
+    ? null
+    : json is num
+        ? json.toDouble()
+        : (double.tryParse(castOrNull<String>(json) ?? '') ?? double.nan);
+T? enumFromJson<T extends Enum>(dynamic json, Iterable<T> values) =>
+    enumFromString(castOrNull<String>(json), values);
+
 /// Get the enum value from a string [key].
 ///
 /// Returns null if [key] is invalid.
-T? enumFromString<T>(String key, Iterable<T> values) =>
-    values.firstWhereOrNull((v) => v != null && key == v.asString());
+T? enumFromString<T extends Enum>(String? key, Iterable<T> values) =>
+    key == null ? null : values.firstWhereOrNull((v) => key == v.name);
 
-extension _EnumX on Object {
-  /// Gets the string representation of an enum value.
-  ///
-  /// E.g CategoryLvl1.income becomes "income".
-  String asString() {
-    final String str = toString();
-    final String enumStr = str.split('.').last;
+int? intFromJson(dynamic json) =>
+    castOrNull<int>(json) ?? int.tryParse(castOrNull<String>(json) ?? '');
 
-    // ignore: no_runtimetype_tostring
-    return '$runtimeType.$enumStr' == str ? enumStr : str;
+void setFieldFromJson<T>(
+  Map<dynamic, dynamic> json,
+  String fieldName,
+  void Function(T? v) setter, {
+  T? Function(dynamic j)? getter,
+  bool nullable = true,
+  bool required = false,
+}) {
+  if (!json.containsKey(fieldName)) return;
+
+  final T? value = (getter ?? castOrNull<T>).call(json[fieldName]);
+  if (value != null) setter(value);
+
+  if (required && value == null) {
+    throw JsonDeserializationError(
+      '''Attempted to assign null value to non-nullable required field: `$fieldName`.''',
+    );
+  }
+  if (nullable || value != null) setter(value);
+}
+
+D? dataClassFromJson<D>(
+  dynamic json,
+  D Function(Map json) fromJson,
+) {
+  final Map? map = castOrNull<Map>(json);
+
+  return map == null ? null : fromJson(map);
+}
+
+Iterable<V>? iterableValueFromJson<V>(
+  dynamic json, {
+  V? Function(dynamic v)? value,
+  bool valueNullable = false,
+}) {
+  final V? Function(dynamic) valueGetter = value ?? castOrNull<V>;
+  final Iterable<V?>? iterable = castOrNull<Iterable>(json)?.map(valueGetter);
+
+  return (valueNullable ? iterable : iterable?.where((v) => v != null))
+      ?.cast<V>();
+}
+
+List<V>? listValueFromJson<V>(
+  dynamic json, {
+  V? Function(dynamic v)? value,
+  bool valueNullable = false,
+}) =>
+    iterableValueFromJson(json, value: value, valueNullable: valueNullable)
+        ?.toList();
+
+Set<V>? setValueFromJson<V>(
+  dynamic json, {
+  V? Function(dynamic v)? value,
+  bool valueNullable = false,
+}) =>
+    iterableValueFromJson(json, value: value, valueNullable: valueNullable)
+        ?.toSet();
+
+Map<K, V>? mapValueFromJson<K, V>(
+  dynamic json, {
+  K? Function(dynamic k)? key,
+  bool keyNullable = false,
+  V? Function(dynamic v)? value,
+  bool valueNullable = false,
+}) {
+  final K? Function(dynamic) keyGetter = key ?? castOrNull<K>;
+  final V? Function(dynamic) valueGetter = value ?? castOrNull<V>;
+  final Map<K?, V?>? map = castOrNull<Map>(json)?.map(
+    (k, v) => MapEntry(keyGetter(k), valueGetter(v)),
+  );
+  if (!keyNullable || !valueNullable) {
+    map
+      ?..removeWhere(
+        (k, v) => !keyNullable && k == null || !valueNullable && v == null,
+      );
   }
 
-  bool get isEnum {
-    final String str = toString();
-    final String enumStr = str.split('.').last;
+  return map?.cast<K, V>();
+}
 
-    // ignore: no_runtimetype_tostring
-    return '$runtimeType.$enumStr' == str;
+extension StringX on String {
+  String camelToSnake() => replaceAllMapped(
+        RegExp('[A-Z]+'),
+        (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
+      );
+
+  String snakeToCamel() {
+    final result = StringBuffer();
+    toLowerCase().split(RegExp('[^A-Za-z0-9]+')).asMap().forEach(
+          (i, part) => result.write(
+            part.isEmpty
+                ? ''
+                : (i > 0 ? part[0].toUpperCase() : part[0]) + part.substring(1),
+          ),
+        );
+
+    return result.toString();
   }
 }

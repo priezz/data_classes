@@ -1,6 +1,6 @@
 name: data_classes
 description: Automatically generates data classes for you based on a "blueprint" class.
-version: 1.8.0
+version: 1.9.0
 homepage: https://github.com/priezz/data_classes
 
 environment:
@@ -8,7 +8,6 @@ environment:
 
 dependencies:
   collection: ^1.15.0
-  dartx: ^1.0.0
 
 dependency_overrides:
   checked_yaml: ^2.0.1

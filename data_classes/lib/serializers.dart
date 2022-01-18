@@ -16,35 +16,44 @@ dynamic serializeToJson(dynamic obj) {
     ];
   }
 
-  if (obj is IDataClass) return obj.toJson();
-
   if (obj is bool || obj is num || obj is String) return obj;
 
   if (obj is DateTime) return obj.toIso8601String();
 
-  if (obj is Object && obj.isEnum) return obj.asString();
+  if (obj is Enum) return obj.name;
+
+  if (obj is double) return obj.isFinite ? obj : 'NaN';
+
+  if (obj is IDataClass) return obj.toJson();
+  try {
+    if (obj.toJson is Function) return obj.toJson();
+  } catch (_) {}
 
   throw Exception('Invalid json field: $obj');
 }
 
-T? deserializePrimitive<T>(
-  dynamic value, [
-  T? defaultValue,
-]) {
-  final valueStr = castOrNull<String>(value);
+Iterable<T> serializeIterableToJson<T>(Iterable json) =>
+    (serializeToJson(json) as Iterable).cast<T>();
 
-  dynamic deserialized;
+// T? deserializePrimitive<T>(
+//   dynamic value, [
+//   T? defaultValue,
+// ]) {
+//   final valueStr = castOrNull<String>(value);
+//   if(valueStr == null) return defaultValue;
 
-  if (T is DateTime) deserialized = DateTime.tryParse(valueStr ?? '');
+//   dynamic deserialized;
 
-  if (T is String) deserialized = valueStr;
+//   if (T is DateTime) deserialized = DateTime.tryParse(valueStr);
 
-  if (T is bool)
-    deserialized = valueStr == null ? null : valueStr.toLowerCase() == 'true';
+//   if (T is String) deserialized = valueStr;
 
-  if (T is double) deserialized = double.tryParse(valueStr ?? '');
+//   if (T is bool)
+//     deserialized = valueStr.toLowerCase() == 'true';
 
-  if (T is int) deserialized = int.tryParse(valueStr ?? '');
+//   if (T is double) deserialized = double.tryParse(valueStr) ?? double.nan;
 
-  return deserialized as T ?? defaultValue;
-}
+//   if (T is int) deserialized = int.tryParse(valueStr);
+
+//   return deserialized as T ?? defaultValue;
+// }
