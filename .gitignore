@@ -8,3 +8,4 @@ data_classes_generator/.packages
 example/.dart_tool
 example/.packages
 .history
+.syncignore

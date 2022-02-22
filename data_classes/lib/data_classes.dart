@@ -140,20 +140,28 @@ void setModelField<T>(
   String fieldName,
   void Function(T? v) setter, {
   T? Function(dynamic j)? getter,
+
+  /// Nullable value is allowed
   bool nullable = true,
+
+  /// Non-nullable value is required
   bool required = false,
 }) {
-  if (!json.containsKey(fieldName)) return;
-
-  final T? value = (getter ?? castOrNull<T>).call(json[fieldName]);
-  if (value != null) setter(value);
-
-  if (required && value == null) {
-    throw JsonDeserializationError(
-      '''Attempted to assign null value to non-nullable required field: `$fieldName`.''',
-    );
+  final bool hasKey = json.containsKey(fieldName);
+  final T? value =
+      hasKey ? (getter ?? castOrNull<T>).call(json[fieldName]) : null;
+  if (value != null) {
+    setter(value);
+  } else {
+    if (required) {
+      throw JsonDeserializationError(
+        hasKey
+            ? '''Attempt to assign null value to non-nullable required `$fieldName` field. $json'''
+            : '''Required field `$fieldName` is missing. $json''',
+      );
+    }
+    if (nullable && hasKey) setter(null);
   }
-  if (nullable || value != null) setter(value);
 }
 
 extension StringX on String {
@@ -227,7 +235,23 @@ Map<K, V>? mapValueFromJson<K, V>(
   final K? Function(dynamic) keyGetter = key ?? castOrNull<K>;
   final V? Function(dynamic) valueGetter = value ?? castOrNull<V>;
   final Map<K?, V?>? map = castOrNull<Map>(json)?.map(
-    (k, v) => MapEntry(keyGetter(k), valueGetter(v)),
+    (k, v) {
+      K? keyValue;
+      try {
+        keyValue = keyGetter(k);
+      } catch (e) {
+        print('[mapValueFromJson] Failed to get key from {$k: $v}. $e');
+        return MapEntry(null, null);
+      }
+      V? valueValue;
+      try {
+        valueValue = valueGetter(v);
+      } catch (e) {
+        print('[mapValueFromJson] Failed to get value from {$k: $v}. $e');
+        return MapEntry(null, null);
+      }
+      return MapEntry(keyValue, valueValue);
+    },
   );
   if (!keyNullable || !valueNullable) {
     map
