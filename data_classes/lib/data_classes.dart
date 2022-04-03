@@ -195,9 +195,15 @@ bool? boolValueFromJson(dynamic json) {
   return str == 'true' || str == 'false' ? false : null;
 }
 
-DateTime? dateTimeValueFromJson(dynamic json, {bool convertToUtc = false}) {
-  final date = DateTime.tryParse(castOrNull<String>(json) ?? '');
-  return convertToUtc ? date?.toUtc() : date;
+DateTime? dateTimeValueFromJson(dynamic json, {bool asUtc = false}) {
+  String? dateStr = castOrNull<String>(json);
+  if (dateStr == null) return null;
+
+  if (asUtc && !dateStr.endsWith('Z')) {
+    dateStr = '${dateStr}${!dateStr.contains('T') ? 'T00:00:00' : ''}Z';
+  }
+
+  return DateTime.tryParse(dateStr);
 }
 
 double? doubleValueFromJson(dynamic json) => json == null

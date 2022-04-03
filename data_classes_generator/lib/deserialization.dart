@@ -19,6 +19,7 @@ List<String> generateFieldDeserializer(
   final String? deserializer = _generateValueDeserializer(
     accessor: 'j',
     customDeserializer: field.customDeserializer,
+    deserializeDatesAsUtc: deserializeDatesAsUtc,
     fieldType: type,
   );
 
@@ -69,7 +70,9 @@ String? _generateValueDeserializer({
                       : fieldType.isDartCoreDouble
                           ? 'doubleValueFromJson($accessor)'
                           : fieldType.isDateTime
-                              ? 'dateTimeValueFromJson($accessor, convertToUtc: $deserializeDatesAsUtc)'
+                              ? 'dateTimeValueFromJson($accessor'
+                                  '${deserializeDatesAsUtc ? ', asUtc: true' : ''}'
+                                  ')'
                               : fieldType.isEnum
                                   ? 'enumValueFromJson($accessor, $typeStr.values)'
                                   : fieldType.hasFromJson
