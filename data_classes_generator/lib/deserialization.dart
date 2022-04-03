@@ -9,6 +9,7 @@ import 'package:data_classes/data_classes.dart';
 List<String> generateFieldDeserializer(
   FieldElement field, {
   bool convertToSnakeCase = false,
+  bool deserializeDatesAsUtc = false,
 }) {
   final DartType type = field.type;
   final String fieldName =
@@ -37,6 +38,7 @@ String? _generateValueDeserializer({
   required String accessor,
   required DartType fieldType,
   String? customDeserializer,
+  bool deserializeDatesAsUtc = false,
 }) {
   late String typeStr;
   if (fieldType.hasFromJson || fieldType.isEnum) {
@@ -67,7 +69,7 @@ String? _generateValueDeserializer({
                       : fieldType.isDartCoreDouble
                           ? 'doubleValueFromJson($accessor)'
                           : fieldType.isDateTime
-                              ? 'dateTimeValueFromJson($accessor)'
+                              ? 'dateTimeValueFromJson($accessor, convertToUtc: $deserializeDatesAsUtc)'
                               : fieldType.isEnum
                                   ? 'enumValueFromJson($accessor, $typeStr.values)'
                                   : fieldType.hasFromJson

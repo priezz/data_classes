@@ -108,6 +108,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         classAnnotation.getField('immutable')!.toBoolValue()!;
     final bool convertToSnakeCase =
         classAnnotation.getField('convertToSnakeCase')?.toBoolValue() ?? false;
+    final bool deserializeDatesAsUtc =
+        classAnnotation.getField('deserializeDatesAsUtc')?.toBoolValue() ??
+            false;
     // final ExecutableElement listener = originalClass.metadata
     //     .firstWhere((annotation) =>
     //         annotation.element?.enclosingElement?.name == 'DataClass')
@@ -258,6 +261,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
           ...generateFieldDeserializer(
             field,
             convertToSnakeCase: convertToSnakeCase,
+            deserializeDatesAsUtc: deserializeDatesAsUtc,
           ),
         '\n  return model;',
         '}',

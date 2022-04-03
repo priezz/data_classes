@@ -21,6 +21,7 @@ class DataClass {
     this.childrenListener,
     this.convertToSnakeCase = false,
     this.copyWith = true,
+    this.deserializeDatesAsUtc = false,
     this.getName,
     this.immutable = false,
     this.listener,
@@ -31,6 +32,7 @@ class DataClass {
   final ChangeListener? childrenListener;
   final bool convertToSnakeCase;
   final bool copyWith;
+  final bool deserializeDatesAsUtc;
   final Function? getName;
   final bool immutable;
   final String? name;
@@ -193,8 +195,10 @@ bool? boolValueFromJson(dynamic json) {
   return str == 'true' || str == 'false' ? false : null;
 }
 
-DateTime? dateTimeValueFromJson(dynamic json) =>
-    DateTime.tryParse(castOrNull<String>(json) ?? '');
+DateTime? dateTimeValueFromJson(dynamic json, {bool convertToUtc = false}) {
+  final date = DateTime.tryParse(castOrNull<String>(json) ?? '');
+  return convertToUtc ? date?.toUtc() : date;
+}
 
 double? doubleValueFromJson(dynamic json) => json == null
     ? null
