@@ -48,6 +48,7 @@ String? _generateValueDeserializer({
     // .removePrefix('[')
     // .removeSuffix(']');
   }
+
   return customDeserializer != null
       ? '$customDeserializer($accessor)'
       : fieldType.isDartCoreMap
@@ -148,15 +149,14 @@ extension on DartType {
   //           .any((method) => method.displayName == 'fromJson')
   //       : false;
   // }
-  bool get hasFromJson => element is ClassElement
-      ? (element as ClassElement).constructors.any(
-          (method) => method.displayName == '${element!.displayName}.fromJson')
+  bool get hasFromJson => element2 is ClassElement
+      ? (element2 as ClassElement).constructors.any(
+          (method) => method.displayName == '${element2!.displayName}.fromJson')
       : false;
 
   bool get isDateTime => getDisplayString(withNullability: false) == 'DateTime';
 
-  bool get isEnum =>
-      element is ClassElement ? (element as ClassElement).isEnum : false;
+  bool get isEnum => element2 is ClassElement ? element2 is EnumElement : false;
 
   bool get isIterable => isDartCoreIterable || isDartCoreList || isDartCoreSet;
 
@@ -188,7 +188,7 @@ extension ElementX on Element {
   DartObject? get serializableAnnotation => metadata
       .firstOrNullWhere(
         (annotation) =>
-            annotation.element?.enclosingElement?.name == 'Serializable',
+            annotation.element?.enclosingElement3?.name == 'Serializable',
       )
       ?.computeConstantValue();
 
@@ -204,7 +204,7 @@ extension ElementX on Element {
 
   String? get jsonKey => metadata
       .firstOrNullWhere((annotation) =>
-          annotation.element?.enclosingElement?.name == 'JsonKey')
+          annotation.element?.enclosingElement3?.name == 'JsonKey')
       ?.computeConstantValue()
       ?.getField('name')
       ?.toStringValue();

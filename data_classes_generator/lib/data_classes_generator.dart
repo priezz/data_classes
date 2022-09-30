@@ -62,9 +62,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     /// prefix in front of the type in the immutable class too. So here, we map
     /// the module identifiers to their import prefixes.
     Map<String, String> qualifiedImports = {
-      for (final import in originalClass.library.imports)
+      for (final import in originalClass.library.libraryImports)
         if (import.prefix != null)
-          import.importedLibrary!.identifier: import.prefix!.name,
+          import.importedLibrary!.identifier: import.prefix!.element.name,
     };
 
     /// Collect all the fields and getters from the original class.
@@ -93,7 +93,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     final DartObject classAnnotation = originalClass.metadata
         .firstWhere(
           (annotation) =>
-              annotation.element?.enclosingElement?.name == 'DataClass',
+              annotation.element?.enclosingElement3?.name == 'DataClass',
         )
         .computeConstantValue()!;
 
@@ -131,7 +131,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     final String equalityFn = immutable ? 'eqShallow' : 'eqDeep';
 
     /// Actually generate the class.
-    final buffer = StringBuffer();
+    final StringBuffer buffer = StringBuffer();
     buffer.writeAll([
       '// ignore_for_file: deprecated_member_use_from_same_package, duplicate_ignore, lines_longer_than_80_chars, prefer_constructors_over_static_methods, unnecessary_lambdas, unnecessary_null_comparison, unnecessary_nullable_for_final_variable_declarations, unused_element',
 
@@ -332,13 +332,13 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     FieldElement field, {
     bool convertToSnakeCase = false,
   }) {
-    final customName = field.jsonKey;
-    final customSerializer =
-        field.customSerializer ?? field.type.element?.customSerializer;
-    final getter = '_model.${field.name}';
-    final invocation =
+    final String? customName = field.jsonKey;
+    final String? customSerializer =
+        field.customSerializer ?? field.type.element2?.customSerializer;
+    final String getter = '_model.${field.name}';
+    final String invocation =
         customSerializer != null ? '$customSerializer($getter)' : getter;
-    final jsonKey = customName ??
+    final String jsonKey = customName ??
         (convertToSnakeCase ? field.name.camelToSnake() : field.name);
 
     return "'$jsonKey': $invocation,";
@@ -422,9 +422,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
   /// Turns the [type] into a type with prefix.
   String _qualifiedType(DartType type, Map<String, String> qualifiedImports) {
-    final typeLibrary = type.element!.library;
-    final prefixOrNull = qualifiedImports[typeLibrary?.identifier];
-    final prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
+    final LibraryElement? typeLibrary = type.element2!.library;
+    final String? prefixOrNull = qualifiedImports[typeLibrary?.identifier];
+    final String prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
 
     // TODO: Add a parameter to keep null-safety
     return '$prefix${type.toString().replaceAll('*', '')}';
@@ -436,9 +436,9 @@ String resolveFullTypeStringFrom(
   DartType type, {
   required bool withNullability,
 }) {
-  final owner = originLibrary.prefixes.firstOrNullWhere(
-    (e) {
-      final librariesForPrefix = e.library.getImportsWithPrefix(e);
+  final PrefixElement? owner = originLibrary.prefixes.firstOrNullWhere(
+    (prefix) {
+      final List<LibraryImportElement> librariesForPrefix = prefix.imports2;
 
       return librariesForPrefix.any((l) {
         return l.importedLibrary!.anyTransitiveExport((library) {
@@ -472,23 +472,15 @@ String resolveFullTypeStringFrom(
     }
   }
 
-  if (owner != null) {
-    return '${owner.name}.$displayType';
-  }
-
-  return displayType;
+  return owner != null ? '${owner.name}.$displayType' : displayType;
 }
 
 /// Returns the [Element] for a given [DartType]
 ///
 /// this is usually type.element, except if it is a typedef then it is
 /// type.alias.element
-Element _getElementForType(DartType type) {
-  if (type.element != null) {
-    return type.element!;
-  }
-  return type.alias!.element;
-}
+Element _getElementForType(DartType type) =>
+    type.element2 != null ? type.element2! : type.alias!.element;
 
 extension LibraryHasImport on LibraryElement {
   LibraryElement? findTransitiveExportWhere(
@@ -496,7 +488,7 @@ extension LibraryHasImport on LibraryElement {
   ) {
     if (visitor(this)) return this;
 
-    final visitedLibraries = <LibraryElement>{};
+    final Set<LibraryElement> visitedLibraries = <LibraryElement>{};
     LibraryElement? visitLibrary(LibraryElement library) {
       if (!visitedLibraries.add(library)) return null;
 
@@ -518,9 +510,6 @@ extension LibraryHasImport on LibraryElement {
     return null;
   }
 
-  bool anyTransitiveExport(
-    bool Function(LibraryElement library) visitor,
-  ) {
-    return findTransitiveExportWhere(visitor) != null;
-  }
+  bool anyTransitiveExport(bool Function(LibraryElement library) visitor) =>
+      findTransitiveExportWhere(visitor) != null;
 }
