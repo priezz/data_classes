@@ -193,8 +193,12 @@ bool? boolValueFromJson(dynamic json) {
   return str == 'true' || str == 'false' ? false : null;
 }
 
-DateTime? dateTimeValueFromJson(dynamic json) =>
-    DateTime.tryParse(castOrNull<String>(json) ?? '');
+DateTime? dateTimeValueFromJson(dynamic json) {
+  String valueStr = castOrNull<String>(json) ?? '';
+  if (valueStr.isNotEmpty && !valueStr.endsWith('Z')) valueStr = '${valueStr}Z';
+
+  return DateTime.tryParse(valueStr);
+}
 
 double? doubleValueFromJson(dynamic json) => json == null
     ? null
