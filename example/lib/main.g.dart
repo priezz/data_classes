@@ -6,19 +6,11 @@ part of 'main.dart';
 // DataClassGenerator
 // **************************************************************************
 
-// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, dead_null_aware_expression, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first
+// ignore_for_file: deprecated_member_use_from_same_package, duplicate_ignore, lines_longer_than_80_chars, prefer_constructors_over_static_methods, unnecessary_lambdas, unnecessary_null_comparison, unnecessary_nullable_for_final_variable_declarations, unused_element
 /// {@category model}
 /// A fruit with a doc comment
 @immutable
 class Fruit extends IDataClass<Fruit, FruitModel> {
-  final FruitModel _model = FruitModel();
-
-  Color? get color => _model.color;
-  Map<String, dynamic> get extraInfo => _model.extraInfo;
-  String get name => _model.name;
-  Tree get tree => _model.tree;
-  double get weight => _model.weight;
-
   /// Creates a new [Fruit] with the given attributes
   factory Fruit({
     required String name,
@@ -36,26 +28,58 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
           ..extraInfo = extraInfo ?? b.extraInfo,
       );
 
-  factory Fruit.from(Fruit source) =>
+  factory Fruit.from(
+    Fruit source,
+  ) =>
       Fruit.build((b) => _modelCopy(source._model, b));
 
-  factory Fruit.fromModel(FruitModel source) =>
+  factory Fruit.fromModel(
+    FruitModel source,
+  ) =>
       Fruit.build((b) => _modelCopy(source, b));
 
-  Fruit.build(DataClassBuilder<FruitModel>? build) {
+  Fruit.build(
+    DataClassBuilder<FruitModel>? build,
+  ) {
     build?.call(_model);
   }
+
+  factory Fruit.fromJson(Map<dynamic, dynamic> json) =>
+      Fruit.fromModel(_modelFromJson(json));
+
+  final FruitModel _model = FruitModel();
+
+  Color? get color => _model.color;
+  Map<String, dynamic> get extraInfo => _model.extraInfo;
+  String get name => _model.name;
+  Tree get tree => _model.tree;
+  double get weight => _model.weight;
 
   /// Checks if this [Fruit] is equal to the other one.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is Fruit &&
-          eqShallow(_model.color, other._model.color) &&
-          eqShallow(_model.extraInfo, other._model.extraInfo) &&
-          eqShallow(_model.name, other._model.name) &&
-          eqShallow(_model.tree, other._model.tree) &&
-          eqShallow(_model.weight, other._model.weight);
+          eqShallow(
+            _model.color,
+            other._model.color,
+          ) &&
+          eqShallow(
+            _model.extraInfo,
+            other._model.extraInfo,
+          ) &&
+          eqShallow(
+            _model.name,
+            other._model.name,
+          ) &&
+          eqShallow(
+            _model.tree,
+            other._model.tree,
+          ) &&
+          eqShallow(
+            _model.weight,
+            other._model.weight,
+          );
 
   @override
   int get hashCode => hashList([
@@ -69,7 +93,7 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
   /// Converts this [Fruit] into a [String].
   @override
   String toString() => 'Fruit(\n'
-      '${color != null ? '  color: ${color!}\n' : ''}'
+      '''${color != null ? '  color: ${color!}\n' : ''}'''
       '  extraInfo: $extraInfo\n'
       '  name: $name\n'
       '  tree: $tree\n'
@@ -78,7 +102,10 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
 
   /// Creates a new instance of [Fruit], which is a copy of this with some changes
   @override
-  Fruit copy([DataClassBuilder<FruitModel>? update]) => Fruit.build((builder) {
+  Fruit copy([
+    DataClassBuilder<FruitModel>? update,
+  ]) =>
+      Fruit.build((builder) {
         _modelCopy(_model, builder);
         update?.call(builder);
         _notifyOnPropChanges(_model, builder);
@@ -93,20 +120,72 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
     Tree? tree,
     double? weight,
   }) =>
-      copy((b) => b
-        ..color = color ?? _model.color
-        ..extraInfo = extraInfo ?? _model.extraInfo
-        ..name = name ?? _model.name
-        ..tree = tree ?? _model.tree
-        ..weight = weight ?? _model.weight);
-
-  factory Fruit.fromJson(Map<dynamic, dynamic> json) =>
-      Fruit.fromModel(_$FruitModelFromJson(json));
-
-  static Fruit deserialize(Map<dynamic, dynamic> json) => Fruit.fromJson(json);
+      copy(
+        (b) => b
+          ..color = color ?? _model.color
+          ..extraInfo = extraInfo ?? _model.extraInfo
+          ..name = name ?? _model.name
+          ..tree = tree ?? _model.tree
+          ..weight = weight ?? _model.weight,
+      );
 
   @override
-  Map<dynamic, dynamic> toJson() => _$FruitModelToJson(_model);
+  Map<dynamic, dynamic> toJson() => serializeToJson({
+        'color': _model.color,
+        'extraInfo': _model.extraInfo,
+        'name': _model.name,
+        'tree': _model.tree,
+        'weightInGrams': _model.weight,
+      }) as Map<dynamic, dynamic>;
+
+  static FruitModel _modelFromJson(
+    Map<dynamic, dynamic> json,
+  ) {
+    final model = FruitModel();
+
+    setModelField<Color?>(
+      json,
+      'color',
+      (v) => model.color = v,
+      getter: (j) => enumValueFromJson(j, Color.values),
+    );
+
+    setModelField<Map<String, dynamic>>(
+      json,
+      'extraInfo',
+      (v) => model.extraInfo = v!,
+      getter: (j) => mapValueFromJson<String, dynamic>(
+        j,
+        value: (v) => v,
+      ),
+      nullable: false,
+    );
+
+    setModelField<String>(
+      json,
+      'name',
+      (v) => model.name = v!,
+      required: true,
+    );
+
+    setModelField<Tree>(
+      json,
+      'tree',
+      (v) => model.tree = v!,
+      getter: (j) => treeFromJson(j),
+      required: true,
+    );
+
+    setModelField<double>(
+      json,
+      'weightInGrams',
+      (v) => model.weight = v!,
+      getter: (j) => doubleValueFromJson(j),
+      required: true,
+    );
+
+    return model;
+  }
 
   @override
   FruitModel get $model => _model;
@@ -138,79 +217,45 @@ class Fruit extends IDataClass<Fruit, FruitModel> {
           '$name',
           next: nextValue,
           prev: prevValue,
-          toJson: () => _$FruitModelToJson(set(FruitModel(), nextValue))[name],
         );
       }
     }
 
     Future.wait([
-      notify('color', (m) => m.color, (m, v) => m..color = v as Color?),
-      notify('extraInfo', (m) => m.extraInfo,
-          (m, v) => m..extraInfo = v as Map<String, dynamic>),
-      notify('name', (m) => m.name, (m, v) => m..name = v as String),
-      notify('tree', (m) => m.tree, (m, v) => m..tree = v as Tree),
-      notify('weight', (m) => m.weight, (m, v) => m..weight = v as double),
+      notify(
+        'color',
+        (m) => m.color,
+        (m, v) => m..color = v as Color?,
+      ),
+      notify(
+        'extraInfo',
+        (m) => m.extraInfo,
+        (m, v) => m..extraInfo = v as Map<String, dynamic>,
+      ),
+      notify(
+        'name',
+        (m) => m.name,
+        (m, v) => m..name = v as String,
+      ),
+      notify(
+        'tree',
+        (m) => m.tree,
+        (m, v) => m..tree = v as Tree,
+      ),
+      notify(
+        'weight',
+        (m) => m.weight,
+        (m, v) => m..weight = v as double,
+      ),
     ]);
   }
 }
 
-FruitModel _$FruitModelFromJson(Map<dynamic, dynamic> json) {
-  final model = FruitModel();
-
-  final color =
-      enumFromString(castOrNull<String>(json['color']) ?? '', Color.values);
-  model.color = color;
-
-  final extraInfo = castOrNull<Map>(json['extraInfo']);
-  if (extraInfo != null)
-    model.extraInfo = Map.fromEntries(extraInfo.entries.mapNotNull((e) {
-      final key = castOrNull<String>(e.key);
-      final value = e.value;
-
-      return key != null ? MapEntry(key, value) : null;
-    }));
-
-  final name = castOrNull<String>(json['name']);
-  if (name == null) {
-    throw JsonDeserializationError(
-      'Attempted to assign null value to non-nullable required field: `name`.',
-    );
-  }
-  model.name = name;
-
-  model.tree = treeFromJson(json['tree']);
-
-  final weight = castOrNull<num>(json['weightInGrams'])?.toDouble() ??
-      double.tryParse(castOrNull<String>(json['weightInGrams']) ?? '');
-  if (weight == null) {
-    throw JsonDeserializationError(
-      'Attempted to assign null value to non-nullable required field: `weight`.',
-    );
-  }
-  model.weight = weight;
-
-  return model;
-}
-
-Map<String, dynamic> _$FruitModelToJson(FruitModel instance) =>
-    serializeToJson({
-      'color': instance.color,
-      'extraInfo': instance.extraInfo,
-      'name': instance.name,
-      'tree': instance.tree,
-      'weightInGrams': instance.weight,
-    });
-
-// ignore_for_file: argument_type_not_assignable, avoid_private_typedef_functions, avoid_single_cascade_in_expression_statements, dead_null_aware_expression, lines_longer_than_80_chars, implicit_dynamic_method, implicit_dynamic_parameter, implicit_dynamic_type, non_constant_identifier_names, prefer_asserts_with_message, prefer_constructors_over_static_methods, prefer_expression_function_bodies, sort_constructors_first
+// ignore_for_file: deprecated_member_use_from_same_package, duplicate_ignore, lines_longer_than_80_chars, prefer_constructors_over_static_methods, unnecessary_lambdas, unnecessary_null_comparison, unnecessary_nullable_for_final_variable_declarations, unused_element
 /// {@category model}
 
 @immutable
 class Tree extends IDataClass<Tree, TreeModel> {
-  final TreeModel _model = TreeModel();
-
-  String get name => _model.name;
-  double? get averageHeight => _model.averageHeight;
-
   /// Creates a new [Tree] with the given attributes
   factory Tree({
     required String name,
@@ -222,23 +267,43 @@ class Tree extends IDataClass<Tree, TreeModel> {
           ..averageHeight = averageHeight ?? b.averageHeight,
       );
 
-  factory Tree.from(Tree source) =>
+  factory Tree.from(
+    Tree source,
+  ) =>
       Tree.build((b) => _modelCopy(source._model, b));
 
-  factory Tree.fromModel(TreeModel source) =>
+  factory Tree.fromModel(
+    TreeModel source,
+  ) =>
       Tree.build((b) => _modelCopy(source, b));
 
-  Tree.build(DataClassBuilder<TreeModel>? build) {
+  Tree.build(
+    DataClassBuilder<TreeModel>? build,
+  ) {
     build?.call(_model);
   }
+
+  factory Tree.fromJson(Map<dynamic, dynamic> json) =>
+      Tree.fromModel(_modelFromJson(json));
+
+  final TreeModel _model = TreeModel();
+
+  String get name => _model.name;
+  double? get averageHeight => _model.averageHeight;
 
   /// Checks if this [Tree] is equal to the other one.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is Tree &&
-          eqShallow(_model.name, other._model.name) &&
-          eqShallow(_model.averageHeight, other._model.averageHeight);
+          eqShallow(
+            _model.name,
+            other._model.name,
+          ) &&
+          eqShallow(
+            _model.averageHeight,
+            other._model.averageHeight,
+          );
 
   @override
   int get hashCode => hashList([
@@ -250,12 +315,15 @@ class Tree extends IDataClass<Tree, TreeModel> {
   @override
   String toString() => 'Tree(\n'
       '  name: $name\n'
-      '${averageHeight != null ? '  averageHeight: ${averageHeight!}\n' : ''}'
+      '''${averageHeight != null ? '  averageHeight: ${averageHeight!}\n' : ''}'''
       ')';
 
   /// Creates a new instance of [Tree], which is a copy of this with some changes
   @override
-  Tree copy([DataClassBuilder<TreeModel>? update]) => Tree.build((builder) {
+  Tree copy([
+    DataClassBuilder<TreeModel>? update,
+  ]) =>
+      Tree.build((builder) {
         _modelCopy(_model, builder);
         update?.call(builder);
       });
@@ -266,17 +334,39 @@ class Tree extends IDataClass<Tree, TreeModel> {
     String? name,
     double? averageHeight,
   }) =>
-      copy((b) => b
-        ..name = name ?? _model.name
-        ..averageHeight = averageHeight ?? _model.averageHeight);
-
-  factory Tree.fromJson(Map<dynamic, dynamic> json) =>
-      Tree.fromModel(_$TreeModelFromJson(json));
-
-  static Tree deserialize(Map<dynamic, dynamic> json) => Tree.fromJson(json);
+      copy(
+        (b) => b
+          ..name = name ?? _model.name
+          ..averageHeight = averageHeight ?? _model.averageHeight,
+      );
 
   @override
-  Map<dynamic, dynamic> toJson() => _$TreeModelToJson(_model);
+  Map<dynamic, dynamic> toJson() => serializeToJson({
+        'name': _model.name,
+        'averageHeight': _model.averageHeight,
+      }) as Map<dynamic, dynamic>;
+
+  static TreeModel _modelFromJson(
+    Map<dynamic, dynamic> json,
+  ) {
+    final model = TreeModel();
+
+    setModelField<String>(
+      json,
+      'name',
+      (v) => model.name = v!,
+      required: true,
+    );
+
+    setModelField<double?>(
+      json,
+      'averageHeight',
+      (v) => model.averageHeight = v,
+      getter: (j) => doubleValueFromJson(j),
+    );
+
+    return model;
+  }
 
   @override
   TreeModel get $model => _model;
@@ -289,26 +379,3 @@ class Tree extends IDataClass<Tree, TreeModel> {
         ..name = source.name
         ..averageHeight = source.averageHeight;
 }
-
-TreeModel _$TreeModelFromJson(Map<dynamic, dynamic> json) {
-  final model = TreeModel();
-
-  final name = castOrNull<String>(json['name']);
-  if (name == null) {
-    throw JsonDeserializationError(
-      'Attempted to assign null value to non-nullable required field: `name`.',
-    );
-  }
-  model.name = name;
-
-  final averageHeight = castOrNull<num>(json['averageHeight'])?.toDouble() ??
-      double.tryParse(castOrNull<String>(json['averageHeight']) ?? '');
-  model.averageHeight = averageHeight;
-
-  return model;
-}
-
-Map<String, dynamic> _$TreeModelToJson(TreeModel instance) => serializeToJson({
-      'name': instance.name,
-      'averageHeight': instance.averageHeight,
-    });
