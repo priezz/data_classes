@@ -137,7 +137,7 @@ String _generateMapDeserializer({
   ].join();
 }
 
-extension on DartType {
+extension DartTypeX on DartType {
   // bool get hasFromJson {
   //   if (element is ClassElement && element!.name == 'Package')
   //     print(
@@ -156,7 +156,7 @@ extension on DartType {
 
   bool get isDateTime => getDisplayString(withNullability: false) == 'DateTime';
 
-  bool get isEnum => element2 is ClassElement ? element2 is EnumElement : false;
+  bool get isEnum => element2 is EnumElement;
 
   bool get isIterable => isDartCoreIterable || isDartCoreList || isDartCoreSet;
 
