@@ -193,9 +193,18 @@ bool? boolValueFromJson(dynamic json) {
   return str == 'true' || str == 'false' ? false : null;
 }
 
+final _dateTimeRegExp = RegExp(
+  r'^\d{4}-?\d{2}-?\d{2}(T\d{2}(:?\d{2}(:?\d{2}(.\d{3})?)?)?(([-+]\d{2}(:?\d{2}))|Z)?)?',
+);
+
+/// When [json] is a valid datetime string w/o a timezone specified
+/// UTC zone is undertaken
 DateTime? dateTimeValueFromJson(dynamic json) {
-  String valueStr = castOrNull<String>(json) ?? '';
-  if (valueStr.isNotEmpty && !valueStr.endsWith('Z')) valueStr = '${valueStr}Z';
+  String valueStr = (json as String? ?? '').replaceAll(' ', 'T');
+  final Match? match = _dateTimeRegExp.firstMatch(valueStr);
+  if (match != null && match[5] == null) {
+    valueStr = '$valueStr${valueStr.contains('T') ? '' : 'T00'}Z';
+  }
 
   return DateTime.tryParse(valueStr);
 }
