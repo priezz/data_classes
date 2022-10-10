@@ -9,3 +9,4 @@ example/.dart_tool
 example/.packages
 .history
 .syncignore
+.DS_Store

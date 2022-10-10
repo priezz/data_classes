@@ -86,8 +86,10 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     }
     final List<FieldElement> requiredFields = [];
     final List<FieldElement> nonRequiredFields = [];
+
+    /// Consider all `late` fields as required
     for (final field in fields) {
-      (_isRequired(field) ? requiredFields : nonRequiredFields).add(field);
+      (field.isLate ? requiredFields : nonRequiredFields).add(field);
     }
 
     final DartObject classAnnotation = originalClass.metadata
@@ -154,7 +156,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '}) => $className.build((b) => b',
       for (final field in requiredFields) '..${field.name} = ${field.name}',
       for (final field in nonRequiredFields)
-        '..${field.name} = ${field.name} ?? b.${field.name}',
+        '..${field.name} = ${field.name}${field.hasInitializer ? ' ?? b.${field.name}' : ''}',
       ',);\n',
 
       'factory $className.from($className source,) => $className.build((b) => _modelCopy(source._model, b));\n',
@@ -355,10 +357,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   /// Whether the [field] is nullable
   bool _isNullable(FieldElement field) =>
       field.type.nullabilitySuffix == NullabilitySuffix.question;
-
-  /// Whether the [field] is required
-  bool _isRequired(FieldElement field) =>
-      !_isNullable(field) && !field.hasInitializer;
 
   // /// Capitalizes the first letter of a string.
   // String _capitalize(String string) {
