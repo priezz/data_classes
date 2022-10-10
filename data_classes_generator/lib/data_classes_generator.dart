@@ -89,7 +89,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
     /// Consider all `late` fields as required
     for (final field in fields) {
-      (field.isLate ? requiredFields : nonRequiredFields).add(field);
+      (field.isRequired ? requiredFields : nonRequiredFields).add(field);
     }
 
     final DartObject classAnnotation = originalClass.metadata
@@ -198,7 +198,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override',
       'int get hashCode => hashList([',
       for (final field in fields)
-        _isNullable(field)
+        field.isNullable
             ? 'if (${field.name} != null) ${field.name}!,'
             : '${field.name},',
       ']);\n',
@@ -208,7 +208,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override',
       "String toString() => \'$className(\\n'",
       for (final field in fields)
-        _isNullable(field)
+        field.isNullable
             ? "'''\${${field.name} != null ? '  ${field.name}: \${${field.name}!}\\n' : ''}'''"
             : "'  ${field.name}: \$${field.name}\\n'",
       "')';\n",
@@ -353,10 +353,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   //   return field.metadata
   //       .any((annotation) => annotation.element.name == 'ignoreChanges');
   // }
-
-  /// Whether the [field] is nullable
-  bool _isNullable(FieldElement field) =>
-      field.type.nullabilitySuffix == NullabilitySuffix.question;
 
   // /// Capitalizes the first letter of a string.
   // String _capitalize(String string) {
@@ -510,4 +506,9 @@ extension LibraryHasImport on LibraryElement {
 
   bool anyTransitiveExport(bool Function(LibraryElement library) visitor) =>
       findTransitiveExportWhere(visitor) != null;
+}
+
+extension on FieldElement {
+  bool get isNullable => type.nullabilitySuffix == NullabilitySuffix.question;
+  bool get isRequired => isLate && !hasInitializer;
 }
