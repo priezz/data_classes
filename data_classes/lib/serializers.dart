@@ -24,9 +24,8 @@ dynamic serializeToJson(dynamic obj) {
 
   if (obj is double) return obj.isFinite ? obj : 'NaN';
 
-  if (obj is IDataClass) return obj.toJson();
   try {
-    if (obj.toJson is Function) return obj.toJson();
+    if (obj is IDataClass || obj.toJson is Function) return obj.toJson();
   } catch (_) {}
 
   throw Exception('Invalid json field: $obj');

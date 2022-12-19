@@ -1,87 +1,126 @@
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:build/build.dart';
 import 'package:dartx/dartx.dart';
 
 import 'package:data_classes/data_classes.dart';
 
-List<String> generateFieldDeserializer(
+import 'types.dart';
+
+const _typeRegex = r'\w+(\s*<.+>)?';
+final RegExp _iterableRegex = RegExp(
+  r'^\w+\s*<\s*(' + _typeRegex + r')\s*>\??$',
+);
+final RegExp _mapRegex = RegExp(
+  r'^\w+\s*<(\s*' + _typeRegex + r')\s*,\s*(' + _typeRegex + r')\s*>\??$',
+);
+
+Future<List<String>> generateFieldDeserializer(
   FieldElement field, {
+  required String typeString,
+  required Resolver resolver,
   bool convertToSnakeCase = false,
-}) {
+}) async {
   final DartType type = field.type;
   final String fieldName =
       field.displayName.isNotEmpty ? field.displayName : 'value';
   final String fieldJsonName = field.jsonKey ??
       (convertToSnakeCase ? fieldName.camelToSnake() : fieldName);
-  final String? deserializer = _generateValueDeserializer(
+  final String? deserializer = await _generateValueDeserializer(
     accessor: 'j',
     customDeserializer: field.customDeserializer,
     fieldType: type,
+    resolver: resolver,
+    typeString: typeString,
   );
 
   return [
-    'setModelField<$type>(',
+    'setModelField<$typeString>(',
     '  json,',
     "  '$fieldJsonName',",
-    '  (v) => model.$fieldName = v${type.isRequired ? '!' : ''},',
+    '  (v) => model.$fieldName = v${typeIsNullable(typeString) ? '' : '!'},',
     if (deserializer != null) '  getter: (j) => $deserializer,',
-    if (type.isRequired)
+    if (!typeIsNullable(typeString))
       field.hasInitializer ? '  nullable: false,' : '  required: true,',
     ');\n',
   ];
 }
 
-String? _generateValueDeserializer({
+Future<String?> _generateValueDeserializer({
   required String accessor,
   required DartType fieldType,
+  required Resolver resolver,
+  required String typeString,
   String? customDeserializer,
-}) {
-  late String typeStr;
-  if (fieldType.hasFromJson || fieldType.isEnum) {
-    typeStr = fieldType.getDisplayString(withNullability: false);
-    // typeStr = fieldType
-    // .getDisplayString(
-    //   withNullability: !fieldType.hasFromJson && !fieldType.isEnum,
-    // )
-    // .removePrefix('[')
-    // .removeSuffix(']');
+}) async {
+  final String resolvedTypeString = await getTypeString(
+    fieldType,
+    typeString: typeString,
+    resolver: resolver,
+  );
+
+  RegExpMatch? match;
+  bool isMap = false;
+  bool isIterable = false;
+  match = _mapRegex.firstMatch(typeString);
+  if (match != null) {
+    isMap = true;
+  } else {
+    match = _iterableRegex.firstMatch(typeString);
+    if (match != null) isIterable = true;
   }
 
-  return customDeserializer != null
-      ? '$customDeserializer($accessor)'
-      : fieldType.isDartCoreMap
-          ? _generateMapDeserializer(
-              accessor: accessor,
-              fieldType: fieldType,
-            )
-          : fieldType.isIterable
-              ? _generateIterableDeserializer(
-                  accessor: accessor,
-                  fieldType: fieldType,
-                )
-              : fieldType.isDartCoreBool
-                  ? 'boolValueFromJson($accessor)'
-                  : fieldType.isDartCoreInt
-                      ? 'intValueFromJson($accessor)'
-                      : fieldType.isDartCoreDouble
-                          ? 'doubleValueFromJson($accessor)'
-                          : fieldType.isDateTime
-                              ? 'dateTimeValueFromJson($accessor)'
-                              : fieldType.isEnum
-                                  ? 'enumValueFromJson($accessor, $typeStr.values)'
-                                  : fieldType.hasFromJson
-                                      ? 'valueFromJson($accessor, $typeStr.fromJson)'
-                                      : fieldType.isDynamic
-                                          ? accessor
-                                          : null;
+  if (customDeserializer != null) return '$customDeserializer($accessor)';
+  if (fieldType.isDartCoreMap || isMap) {
+    if (!isMap) {
+      match = _mapRegex.firstMatch(resolvedTypeString);
+    }
+
+    return _generateMapDeserializer(
+      accessor: accessor,
+      fieldType: fieldType,
+      resolver: resolver,
+      typeStringMatch: match!,
+    );
+  }
+  if (fieldType.isIterable || isIterable) {
+    if (!isIterable) {
+      match = _iterableRegex.firstMatch(resolvedTypeString);
+    }
+
+    return _generateIterableDeserializer(
+      accessor: accessor,
+      fieldType: fieldType,
+      resolver: resolver,
+      typeStringMatch: match!,
+    );
+  }
+  if (fieldType.isDartCoreBool) return 'boolValueFromJson($accessor)';
+  if (fieldType.isDartCoreInt) return 'intValueFromJson($accessor)';
+  if (fieldType.isDartCoreDouble) return 'doubleValueFromJson($accessor)';
+  if (fieldType.isDateTime) return 'dateTimeValueFromJson($accessor)';
+  if (fieldType.isEnum) {
+    return 'enumValueFromJson($accessor, $resolvedTypeString.values)';
+  }
+  if (fieldType.hasFromJson ||
+
+      /// Here is an assumption that all unknown types are just not generated yet
+      /// and will be serializable
+      fieldType.isDynamic && resolvedTypeString != 'dynamic') {
+    return 'valueFromJson($accessor, $resolvedTypeString.fromJson)';
+  }
+  // if( fieldType.isDynamic) return accessor;
+
+  return null;
 }
 
-String _generateIterableDeserializer({
+Future<String> _generateIterableDeserializer({
   required String accessor,
   required DartType fieldType,
-}) {
+  required Resolver resolver,
+  required RegExpMatch typeStringMatch,
+}) async {
   final Iterable<DartType> typeParams = fieldType.genericTypes;
   assert(
     typeParams.length != 1,
@@ -89,22 +128,29 @@ String _generateIterableDeserializer({
   );
 
   final DartType valueType = typeParams.first;
-  final String? valueDeserializer =
-      _generateValueDeserializer(accessor: 'v', fieldType: valueType);
+  final String valueTypeString = typeStringMatch[1]!;
+  final String? valueDeserializer = await _generateValueDeserializer(
+    accessor: 'v',
+    fieldType: valueType,
+    resolver: resolver,
+    typeString: valueTypeString,
+  );
 
   return [
-    '${fieldType.isDartCoreList ? 'listValueFromJson' : fieldType.isDartCoreSet ? 'setValueFromJson' : 'iterableValueFromJson'}<$valueType>(',
+    '${fieldType.isDartCoreList ? 'listValueFromJson' : fieldType.isDartCoreSet ? 'setValueFromJson' : 'iterableValueFromJson'}<$valueTypeString>(',
     '  $accessor,',
     if (valueDeserializer != null) '  value: (v) => $valueDeserializer,',
-    if (!valueType.isRequired) '  valueNullable: true,',
+    if (typeIsNullable(valueTypeString)) '  valueNullable: true,',
     ')',
   ].join();
 }
 
-String _generateMapDeserializer({
+Future<String> _generateMapDeserializer({
   required String accessor,
   required DartType fieldType,
-}) {
+  required Resolver resolver,
+  required RegExpMatch typeStringMatch,
+}) async {
   final Iterable<DartType> typeParams = fieldType.genericTypes;
 
   assert(
@@ -114,81 +160,51 @@ String _generateMapDeserializer({
 
   final DartType keyType = typeParams.first;
   final DartType valueType = typeParams.last;
+  final String keyTypeString = typeStringMatch[1]!;
+  final String valueTypeString = typeStringMatch[3]!;
 
   assert(
-    keyType.isSimple,
+    keyType.isSimple || keyType.hasFromJson,
     '''Map key type must be one of these types [bool, DateTime, double, enum, int, String] or should have `fromJson()` constructor.'''
     '''Given type: $keyType.''',
   );
 
-  final String? keyDeserializer =
-      _generateValueDeserializer(accessor: 'k', fieldType: keyType);
-  final String? valueDeserializer =
-      _generateValueDeserializer(accessor: 'v', fieldType: valueType);
+  final String? keyDeserializer = await _generateValueDeserializer(
+    accessor: 'k',
+    fieldType: keyType,
+    resolver: resolver,
+    typeString: keyTypeString,
+  );
+  final String? valueDeserializer = await _generateValueDeserializer(
+    accessor: 'v',
+    fieldType: valueType,
+    resolver: resolver,
+    typeString: valueTypeString,
+  );
 
   return [
-    'mapValueFromJson<$keyType, $valueType>(',
+    'mapValueFromJson<$keyTypeString, $valueTypeString>(',
     '  $accessor,',
     if (keyDeserializer != null) '  key: (k) => $keyDeserializer,',
-    if (!keyType.isRequired) '  keyNullable: true,',
+    if (typeIsNullable(keyTypeString)) '  keyNullable: true,',
     if (valueDeserializer != null) '  value: (v) => $valueDeserializer,',
-    if (!valueType.isRequired) '  valueNullable: true,',
+    if (typeIsNullable(valueTypeString)) '  valueNullable: true,',
     ')',
   ].join();
 }
 
-extension DartTypeX on DartType {
-  // bool get hasFromJson {
-  //   if (element is ClassElement && element!.name == 'Package')
-  //     print(
-  //         'Package: ${(element as ClassElement).constructors.map((c) => c.displayName)}, ${(element as ClassElement).methods.map((c) => c.displayName)}');
-
-  //   return element is ClassElement
-  //       ? (element as ClassElement)
-  //           .constructors
-  //           .any((method) => method.displayName == 'fromJson')
-  //       : false;
-  // }
-  bool get hasFromJson => element2 is ClassElement
-      ? (element2 as ClassElement).constructors.any(
-          (method) => method.displayName == '${element2!.displayName}.fromJson')
+extension on DartType {
+  bool get hasFromJson => element is ClassElement
+      ? (element as ClassElement).constructors.any(
+          (method) => method.displayName == '${element!.displayName}.fromJson')
       : false;
-
-  bool get isDateTime => getDisplayString(withNullability: false) == 'DateTime';
-
-  bool get isEnum => element2 is EnumElement;
-
-  bool get isIterable => isDartCoreIterable || isDartCoreList || isDartCoreSet;
-
-  bool get isSimple =>
-      isDartCoreBool ||
-      isDartCoreDouble ||
-      isDartCoreInt ||
-      isDartCoreString ||
-      isEnum ||
-      isDateTime ||
-      // isDynamic ||
-      // isDartCoreObject ||
-      hasFromJson;
-
-  bool get isRequired => nullabilitySuffix != NullabilitySuffix.question;
-
-  Iterable<DartType> get genericTypes => this is ParameterizedType
-      ? (this as ParameterizedType).typeArguments
-      : const [];
-
-  // String get nameWithoutTypeParams {
-  //   final name = getDisplayString(withNullability: false);
-  //   final indexOfBracket = name.indexOf('<');
-  //   return indexOfBracket > 0 ? name.substring(0, indexOfBracket) : name;
-  // }
 }
 
 extension ElementX on Element {
   DartObject? get serializableAnnotation => metadata
       .firstOrNullWhere(
         (annotation) =>
-            annotation.element?.enclosingElement3?.name == 'Serializable',
+            annotation.element?.enclosingElement?.name == 'Serializable',
       )
       ?.computeConstantValue();
 
@@ -204,8 +220,11 @@ extension ElementX on Element {
 
   String? get jsonKey => metadata
       .firstOrNullWhere((annotation) =>
-          annotation.element?.enclosingElement3?.name == 'JsonKey')
+          annotation.element?.enclosingElement?.name == 'JsonKey')
       ?.computeConstantValue()
       ?.getField('name')
       ?.toStringValue();
 }
+
+bool typeIsNullable(String typeString) =>
+    typeString[typeString.length - 1] == '?';

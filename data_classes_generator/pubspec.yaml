@@ -1,23 +1,23 @@
 name: data_classes_generator
 description: Automatically generates data classes for you based on a "blueprint" class.
-version: 1.10.0
+version: 1.11.0
 homepage: https://github.com/priezz/data_classes
 
 environment:
   sdk: ">=2.18.0 <3.0.0"
 
 dependencies:
-  analyzer: ^5.1.0
+  analyzer: ^5.3.1
   build: ^2.3.1
   data_classes:
     git:
       url: https://github.com/priezz/data_classes.git
       path: data_classes
   dartx: ^1.1.0
-  source_gen: ^1.2.5
+  source_gen: ^1.2.6
 
 dev_dependencies:
-  build_runner: ^2.2.1
+  build_runner: ^2.3.2
 
 # dependency_overrides:
 #   data_classes:
