@@ -10,7 +10,7 @@ import 'types.dart';
 
 const _typeRegex = r'\w+(\s*<.+>)?';
 final RegExp _iterableRegex = RegExp(
-  r'^\w+\s*<\s*(' + _typeRegex + r')\s*>\??$',
+  r'^(Iterable|.*List|Set)\s*<\s*(' + _typeRegex + r')\s*>\??$',
 );
 final RegExp _mapRegex = RegExp(
   r'^\w+\s*<(\s*' + _typeRegex + r')\s*,\s*(' + _typeRegex + r')\s*>\??$',
@@ -101,7 +101,13 @@ Future<String?> _generateValueDeserializer({
   if (fieldType.isDartCoreDouble) return 'doubleValueFromJson($accessor)';
   if (fieldType.isDateTime) return 'dateTimeValueFromJson($accessor)';
   if (fieldType.isEnum) {
-    return 'enumValueFromJson($accessor, $resolvedTypeString.values)';
+    final int typeIndex = resolvedTypeString.indexOf('<');
+
+    return typeIndex > -1
+        ? 'castOrNull<${resolvedTypeString}>('
+            'enumValueFromJson($accessor, ${resolvedTypeString.substring(0, typeIndex)}.values),'
+            ')'
+        : 'enumValueFromJson($accessor, $resolvedTypeString.values)';
   }
   if (fieldType.hasFromJson ||
 

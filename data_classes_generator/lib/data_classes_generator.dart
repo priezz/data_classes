@@ -44,18 +44,19 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     }
 
     final ClassElement originalClass = element;
+    final String genericTypes = originalClass.typeParameters.isEmpty
+        ? ''
+        : '<${originalClass.typeParameters.map((e) => e.name).join(', ')}>';
+
     final String dataClassName = originalClass.name.substring(
       originalClass.name[0] == '_' ? 1 : 0,
       originalClass.name.length - modelSuffix.length,
     );
-    final String modelClassName = originalClass.name;
+    final String modelClassName = '${originalClass.name}$genericTypes';
     final String modelNameLower = modelClassName.replaceFirstMapped(
       RegExp('[A-Za-z]'),
       (m) => m.group(0)?.toLowerCase() ?? '',
     );
-    final String genericTypeParams = originalClass.typeParameters.isEmpty
-        ? ''
-        : '<${originalClass.typeParameters.map((e) => e.name).join(', ')}>';
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
@@ -134,7 +135,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
               .replaceAll('{@nodoc}', '') ??
           '',
       if (immutable) '@immutable',
-      'class $dataClassName$genericTypeParams extends IDataClass<$dataClassName, $modelClassName> {',
+      'class $dataClassName$genericTypes extends IDataClass<$dataClassName$genericTypes, $modelClassName> {',
 
       /// The default constructor
       '/// Creates a new [$dataClassName] with the given attributes',
@@ -149,9 +150,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '..${field.name} = ${field.name}${field.hasInitializer ? ' ?? b.${field.name}' : ''}',
       ',);\n',
 
-      'factory $dataClassName.from($dataClassName source,) => $dataClassName.build((b) => _modelCopy(source._model, b));\n',
+      'factory $dataClassName.from($dataClassName$genericTypes source,) => $dataClassName$genericTypes.build((b) => _modelCopy(source._model, b));\n',
 
-      'factory $dataClassName.fromModel($modelClassName source,) => $dataClassName.build((b) => _modelCopy(source, b));\n',
+      'factory $dataClassName.fromModel($modelClassName source,) => $dataClassName$genericTypes.build((b) => _modelCopy(source, b));\n',
 
       // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
       '$dataClassName.build(DataClassBuilder<$modelClassName>? build,) {\n',
@@ -163,11 +164,11 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       if (serialize) ...[
         /// fromJson
         'factory $dataClassName.fromJson(Map<dynamic, dynamic> json) =>',
-        '$dataClassName.fromModel(_modelFromJson$genericTypeParams(json));\n',
+        '$dataClassName.fromModel(_modelFromJson$genericTypes(json));\n',
       ],
 
       /// The field members.
-      'final $modelClassName$genericTypeParams _model = $modelClassName();\n',
+      'final $modelClassName _model = $modelClassName();\n',
       for (final field in fields) ...[
         if (field.documentationComment != null) field.documentationComment,
         _fieldGetter(field, fieldTypes),
@@ -177,7 +178,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '/// Checks if this [$dataClassName] is equal to the other one.',
       '@override',
       'bool operator ==(Object other) =>',
-      '  identical(this, other) || other is $dataClassName &&',
+      '  identical(this, other) || other is $dataClassName$genericTypes &&',
       fields
           .map(
             (field) =>
@@ -205,7 +206,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       /// copy
       '/// Creates a new instance of [$dataClassName], which is a copy of this with some changes',
-      '@override $dataClassName copy([DataClassBuilder<$modelClassName>? update,]) => $dataClassName.build((builder) {',
+      '@override $dataClassName$genericTypes copy([DataClassBuilder<$modelClassName>? update,]) => $dataClassName$genericTypes.build((builder) {',
       '  _modelCopy(_model, builder);',
       '  update?.call(builder);',
       if (childrenListener != null) '  _notifyOnPropChanges(_model, builder);',
@@ -223,7 +224,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       /// copyWith
       if (generateCopyWith) ...[
         '/// Creates a new instance of [$dataClassName], which is a copy of this with some changes',
-        '@override $dataClassName copyWith({',
+        '@override $dataClassName$genericTypes copyWith({',
         for (final field in fields)
           '${_field(field, fieldTypes, required: false)},',
         '}) => copy((b) => b',
@@ -244,7 +245,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '}) as Map<dynamic, dynamic>;\n',
 
         /// _modelFromJson
-        'static $modelClassName _modelFromJson$genericTypeParams(Map<dynamic,dynamic> json,) {',
+        'static $modelClassName _modelFromJson$genericTypes(Map<dynamic,dynamic> json,) {',
         '  final model = $modelClassName();\n',
         for (final field in fields)
           ...await generateFieldDeserializer(
@@ -261,7 +262,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
 
       '@override $modelClassName get \$model => _model;\n',
 
-      'static void _modelCopy($modelClassName source, $modelClassName dest,) => dest',
+      'static void _modelCopy$genericTypes($modelClassName source, $modelClassName dest,) => dest',
       for (final field in fields) '..${field.name} = source.${field.name}',
       ';\n',
 
