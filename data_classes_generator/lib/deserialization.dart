@@ -10,10 +10,11 @@ import 'types.dart';
 
 const _typeRegex = r'\w+(\s*<.+>)?';
 final RegExp _iterableRegex = RegExp(
-  r'^(Iterable|.*List|Set)\s*<\s*(' + _typeRegex + r')\s*>\??$',
+  r'^(Iterable|\w*List(View)?|Set)\s*<\s*(' + _typeRegex + r')\s*>\??$',
 );
+
 final RegExp _mapRegex = RegExp(
-  r'^\w+\s*<(\s*' + _typeRegex + r')\s*,\s*(' + _typeRegex + r')\s*>\??$',
+  r'^\w*Map+\s*<(\s*' + _typeRegex + r')\s*,\s*(' + _typeRegex + r')\s*>\??$',
 );
 
 Future<List<String>> generateFieldDeserializer(
@@ -54,11 +55,12 @@ Future<String?> _generateValueDeserializer({
   required String typeString,
   String? customDeserializer,
 }) async {
-  final String resolvedTypeString = await getTypeString(
+  String resolvedTypeString = await getTypeString(
     fieldType,
     typeString: typeString,
     resolver: resolver,
   );
+  // print('$typeString -> $resolvedTypeString');
 
   RegExpMatch? match;
   bool isMap = false;
@@ -74,7 +76,13 @@ Future<String?> _generateValueDeserializer({
   if (customDeserializer != null) return '$customDeserializer($accessor)';
   if (fieldType.isDartCoreMap || isMap) {
     if (!isMap) {
+      if (resolvedTypeString.indexOf('<') == -1) {
+        resolvedTypeString = '$resolvedTypeString<dynamic, dynamic>';
+      }
       match = _mapRegex.firstMatch(resolvedTypeString);
+      if (match == null) {
+        print('No Map types match for $resolvedTypeString! ($typeString)');
+      }
     }
 
     return _generateMapDeserializer(
@@ -86,7 +94,13 @@ Future<String?> _generateValueDeserializer({
   }
   if (fieldType.isIterable || isIterable) {
     if (!isIterable) {
+      if (resolvedTypeString.indexOf('<') == -1) {
+        resolvedTypeString = '$resolvedTypeString<dynamic>';
+      }
       match = _iterableRegex.firstMatch(resolvedTypeString);
+      if (match == null) {
+        print('No Iterable type match for $resolvedTypeString! ($typeString)');
+      }
     }
 
     return _generateIterableDeserializer(
@@ -134,13 +148,14 @@ Future<String> _generateIterableDeserializer({
   );
 
   final DartType valueType = typeParams.first;
-  final String valueTypeString = typeStringMatch[1]!;
+  final String valueTypeString = typeStringMatch[3]!;
   final String? valueDeserializer = await _generateValueDeserializer(
     accessor: 'v',
     fieldType: valueType,
     resolver: resolver,
     typeString: valueTypeString,
   );
+  // print('Iterable<$valueTypeString>');
 
   return [
     '${fieldType.isDartCoreList ? 'listValueFromJson' : fieldType.isDartCoreSet ? 'setValueFromJson' : 'iterableValueFromJson'}<$valueTypeString>(',
@@ -158,7 +173,6 @@ Future<String> _generateMapDeserializer({
   required RegExpMatch typeStringMatch,
 }) async {
   final Iterable<DartType> typeParams = fieldType.genericTypes;
-
   assert(
     fieldType.isDartCoreMap && typeParams.length == 2,
     'Type must be a Map with both type parameters explicitly defined: $fieldType!',
@@ -168,6 +182,7 @@ Future<String> _generateMapDeserializer({
   final DartType valueType = typeParams.last;
   final String keyTypeString = typeStringMatch[1]!;
   final String valueTypeString = typeStringMatch[3]!;
+  // print('Map<$keyTypeString, $valueTypeString>');
 
   assert(
     keyType.isSimple || keyType.hasFromJson,
