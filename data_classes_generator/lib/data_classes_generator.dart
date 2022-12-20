@@ -10,7 +10,8 @@ import 'types.dart';
 const modelSuffix = 'Model';
 
 Builder generateDataClass(BuilderOptions options) =>
-    SharedPartBuilder([DataClassGenerator()], 'data_classes');
+    SharedPartBuilder([DataClassGenerator()], 'data_class',
+        allowSyntaxErrors: true);
 
 class CodeGenError extends Error {
   CodeGenError(this.message);
