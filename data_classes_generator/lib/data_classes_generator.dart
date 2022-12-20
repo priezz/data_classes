@@ -1,13 +1,11 @@
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/nullability_suffix.dart';
-import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:dartx/dartx.dart';
 import 'package:source_gen/source_gen.dart';
 
 import 'package:data_classes/data_classes.dart';
 import 'deserialization.dart';
+import 'types.dart';
 
 const modelSuffix = 'Model';
 
@@ -25,15 +23,14 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   generateForAnnotatedElement(
     Element element,
     ConstantReader annotation,
-    BuildStep _,
-  ) {
+    BuildStep buildStep,
+  ) async {
     if (element is! ClassElement) {
       throw CodeGenError(
         'You can only annotate classes with @DataClass(), but '
         '"${element.name}" isn\'t a class.',
       );
     }
-    // if (!element.name.startsWith('_') || !element.name.endsWith(modelSuffix)) {
     if (!element.name.endsWith(modelSuffix)) {
       throw CodeGenError(
         'The names of classes annotated with @DataClass() should '
@@ -46,7 +43,6 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     }
 
     final ClassElement originalClass = element;
-    // final name = originalClass.name;
     final String className = originalClass.name.substring(
       originalClass.name[0] == '_' ? 1 : 0,
       originalClass.name.length - modelSuffix.length,
@@ -56,6 +52,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       RegExp('[A-Za-z]'),
       (m) => m.group(0)?.toLowerCase() ?? '',
     );
+    // print(
+    //     '$className<${originalClass.typeParameters.map((e) => e.name).join(', ')}>');
 
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
@@ -68,22 +66,12 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     };
 
     /// Collect all the fields and getters from the original class.
-    final Set<FieldElement> fields = {};
-
-    for (final field in originalClass.fields) {
-      if (field.type.toString() == 'dynamic') {
-        throw CodeGenError(
-          'Dynamic types are not allowed.\n'
-          'Fix:\n'
-          '  class $modelName {\n'
-          '    ...\n'
-          '    Object? ${field.name};\n'
-          '    ...\n'
-          '  }',
-        );
-      }
-      fields.add(field);
-    }
+    final List<FieldElement> fields = originalClass.fields;
+    final Map<FieldElement, String> fieldTypes = {
+      for (final f in fields)
+        f: await getFieldTypeString(f, qualifiedImports,
+            resolver: buildStep.resolver),
+    };
     final List<FieldElement> requiredFields = [];
     final List<FieldElement> nonRequiredFields = [];
 
@@ -95,7 +83,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
     final DartObject classAnnotation = originalClass.metadata
         .firstWhere(
           (annotation) =>
-              annotation.element?.enclosingElement3?.name == 'DataClass',
+              annotation.element?.enclosingElement?.name == 'DataClass',
         )
         .computeConstantValue()!;
 
@@ -150,9 +138,9 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '/// Creates a new [$className] with the given attributes',
       'factory $className({',
       for (final field in requiredFields)
-        'required ${_field(field, qualifiedImports)},',
+        'required ${_field(field, fieldTypes)},',
       for (final field in nonRequiredFields)
-        '${_field(field, qualifiedImports, required: false)},',
+        '${_field(field, fieldTypes, required: false)},',
       '}) => $className.build((b) => b',
       for (final field in requiredFields) '..${field.name} = ${field.name}',
       for (final field in nonRequiredFields)
@@ -180,8 +168,8 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       'final $modelName _model = $modelName();\n',
       for (final field in fields) ...[
         if (field.documentationComment != null) field.documentationComment,
-        _fieldGetter(field, qualifiedImports),
-        if (!immutable) _fieldSetter(field, qualifiedImports),
+        _fieldGetter(field, fieldTypes),
+        if (!immutable) _fieldSetter(field, fieldTypes),
       ],
 
       '/// Checks if this [$className] is equal to the other one.',
@@ -198,7 +186,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override',
       'int get hashCode => hashList([',
       for (final field in fields)
-        field.isNullable
+        field.isNullable(fieldTypes)
             ? 'if (${field.name} != null) ${field.name}!,'
             : '${field.name},',
       ']);\n',
@@ -208,7 +196,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       '@override',
       "String toString() => \'$className(\\n'",
       for (final field in fields)
-        field.isNullable
+        field.isNullable(fieldTypes)
             ? "'''\${${field.name} != null ? '  ${field.name}: \${${field.name}!}\\n' : ''}'''"
             : "'  ${field.name}: \$${field.name}\\n'",
       "')';\n",
@@ -235,7 +223,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '/// Creates a new instance of [$className], which is a copy of this with some changes',
         '@override $className copyWith({',
         for (final field in fields)
-          '${_field(field, qualifiedImports, required: false)},',
+          '${_field(field, fieldTypes, required: false)},',
         '}) => copy((b) => b',
         for (final field in fields)
           '..${field.name} = ${field.name} ?? _model.${field.name}',
@@ -257,9 +245,11 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         'static $modelName _modelFromJson(Map<dynamic,dynamic> json,) {',
         '  final model = $modelName();\n',
         for (final field in fields)
-          ...generateFieldDeserializer(
+          ...await generateFieldDeserializer(
             field,
             convertToSnakeCase: convertToSnakeCase,
+            resolver: buildStep.resolver,
+            typeString: fieldTypes[field]!,
           ),
         '\n  return model;',
         '}',
@@ -288,7 +278,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
         '  }\n',
         '  Future.wait([',
         for (final field in fields)
-          "  notify('${field.name}', (m) => m.${field.name}, (m, v) => m..${field.name} = v as ${_qualifiedType(field.type, qualifiedImports)},),",
+          "  notify('${field.name}', (m) => m.${field.name}, (m, v) => m..${field.name} = v as ${fieldTypes[field]},),",
         '  ]);',
         '}',
       ],
@@ -327,6 +317,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
       ],
     ].expand((line) => [line, '\n']));
 
+    // print(buffer);
     return buffer.toString();
   }
 
@@ -336,7 +327,7 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   }) {
     final String? customName = field.jsonKey;
     final String? customSerializer =
-        field.customSerializer ?? field.type.element2?.customSerializer;
+        field.customSerializer ?? field.type.element?.customSerializer;
     final String getter = '_model.${field.name}';
     final String invocation =
         customSerializer != null ? '$customSerializer($getter)' : getter;
@@ -363,152 +354,31 @@ class DataClassGenerator extends GeneratorForAnnotation<DataClass> {
   /// Turns the [field] into type and the field name, separated by a space.
   String _field(
     FieldElement field,
-    Map<String, String> qualifiedImports, {
+    Map<FieldElement, String> fieldTypes, {
     bool required = true,
   }) =>
-      '${_qualifiedType(field.type, qualifiedImports)}${!required && field.type.nullabilitySuffix != NullabilitySuffix.question ? '?' : ''} ${field.name}';
-  // }) {
-  //   if (field.type.toString().contains('dynamic') &&
-  //       field.enclosingElement.nameOffset > 0) {
-  //     // if (field.type.toString() == 'List<dynamic>') {
-  //     final source = field.declaration.source!.contents.data
-  //         .substring(0, field.declaration.nameOffset);
-  //     String? m;
-  //     if (field.type.element != null &&
-  //         field.type.isDynamic &&
-  //         field.type.element!.isSynthetic) {
-  //       final match = RegExp(r'(\w+\??)\s+$').firstMatch(source);
-  //       m = match?.group(1);
-  //     } else if (field.type.element != null) {
-  //       final match = RegExp(r'(\w+<.+?>\??)\s+$').firstMatch(source);
-  //       m = match?.group(1);
-  //     }
-  //     m ??= resolveFullTypeStringFrom(
-  //       field.library,
-  //       field.type,
-  //       withNullability: true,
-  //     );
-  //     if (field.type.toString() != m) print(m);
-  //   }
-
-  //   return '${_qualifiedType(field.type, qualifiedImports)}${!required && field.type.nullabilitySuffix != NullabilitySuffix.question ? '?' : ''} ${field.name}';
-  // }
-
-  // String _fieldDeclaration(
-  //   FieldElement field,
-  //   Map<String, String> qualifiedImports,
-  // ) =>
-  //     '${_qualifiedType(field.type, qualifiedImports)} _${field.name};';
+      '${fieldTypes[field]!}${required || field.isNullable(fieldTypes) ? '' : '?'} ${field.name}';
 
   String _fieldGetter(
     FieldElement field,
-    Map<String, String> qualifiedImports,
+    Map<FieldElement, String> fieldTypes,
   ) =>
-      '${_qualifiedType(field.type, qualifiedImports)} get ${field.name} => '
+      '${fieldTypes[field]} get ${field.name} => '
       '_model.${field.name};';
 
   String _fieldSetter(
     FieldElement field,
-    Map<String, String> qualifiedImports,
+    Map<FieldElement, String> fieldTypes,
   ) =>
-      'set ${field.name}(${_qualifiedType(field.type, qualifiedImports)} value) => '
+      'set ${field.name}(${fieldTypes[field]} value) => '
       '_model.${field.name} = value;';
-
-  /// Turns the [type] into a type with prefix.
-  String _qualifiedType(DartType type, Map<String, String> qualifiedImports) {
-    final LibraryElement? typeLibrary = type.element2!.library;
-    final String? prefixOrNull = qualifiedImports[typeLibrary?.identifier];
-    final String prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
-
-    // TODO: Add a parameter to keep null-safety
-    return '$prefix${type.toString().replaceAll('*', '')}';
-  }
-}
-
-String resolveFullTypeStringFrom(
-  LibraryElement originLibrary,
-  DartType type, {
-  required bool withNullability,
-}) {
-  final PrefixElement? owner = originLibrary.prefixes.firstOrNullWhere(
-    (prefix) {
-      final List<LibraryImportElement> librariesForPrefix = prefix.imports2;
-
-      return librariesForPrefix.any((l) {
-        return l.importedLibrary!.anyTransitiveExport((library) {
-          return library.id == _getElementForType(type).library?.id;
-        });
-      });
-    },
-  );
-
-  String? displayType = type.getDisplayString(withNullability: withNullability);
-
-  // The parameter is a typedef in the form of
-  // SomeTypedef typedef
-  //
-  // In this case the analyzer would expand that typedef using getDisplayString
-  // For example for:
-  //
-  // typedef SomeTypedef = Function(String);
-  //
-  // it would generate:
-  // 'dynamic Function(String)'
-  //
-  // Instead of 'SomeTypedef'
-  if (type is FunctionType && type.alias?.element != null) {
-    displayType = type.alias!.element.name;
-    if (type.alias!.typeArguments.isNotEmpty) {
-      displayType += '<${type.alias!.typeArguments.join(', ')}>';
-    }
-    if (type.nullabilitySuffix == NullabilitySuffix.question) {
-      displayType += '?';
-    }
-  }
-
-  return owner != null ? '${owner.name}.$displayType' : displayType;
-}
-
-/// Returns the [Element] for a given [DartType]
-///
-/// this is usually type.element, except if it is a typedef then it is
-/// type.alias.element
-Element _getElementForType(DartType type) =>
-    type.element2 != null ? type.element2! : type.alias!.element;
-
-extension LibraryHasImport on LibraryElement {
-  LibraryElement? findTransitiveExportWhere(
-    bool Function(LibraryElement library) visitor,
-  ) {
-    if (visitor(this)) return this;
-
-    final Set<LibraryElement> visitedLibraries = <LibraryElement>{};
-    LibraryElement? visitLibrary(LibraryElement library) {
-      if (!visitedLibraries.add(library)) return null;
-
-      if (visitor(library)) return library;
-
-      for (final export in library.exportedLibraries) {
-        final result = visitLibrary(export);
-        if (result != null) return result;
-      }
-
-      return null;
-    }
-
-    for (final import in exportedLibraries) {
-      final result = visitLibrary(import);
-      if (result != null) return result;
-    }
-
-    return null;
-  }
-
-  bool anyTransitiveExport(bool Function(LibraryElement library) visitor) =>
-      findTransitiveExportWhere(visitor) != null;
 }
 
 extension on FieldElement {
-  bool get isNullable => type.nullabilitySuffix == NullabilitySuffix.question;
+  bool isNullable(Map<FieldElement, String> fieldTypes) {
+    final String typeString = fieldTypes[this]!;
+    return typeString[typeString.length - 1] == '?';
+  }
+
   bool get isRequired => isLate && !hasInitializer;
 }
