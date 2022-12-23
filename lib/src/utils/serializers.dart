@@ -1,4 +1,4 @@
-part of 'data_classes.dart';
+import '../data_classes.dart' show IDataClass;
 
 dynamic serializeToJson(dynamic obj) {
   if (obj == null) return null;

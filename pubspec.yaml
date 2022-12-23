@@ -1,0 +1,23 @@
+name: data_classes
+description: Automatic generation of data and sealed classes based on a "blueprint" class.
+version: 1.12.0
+homepage: https://github.com/priezz/data_classes
+
+environment:
+  sdk: ">=2.18.0 <3.0.0"
+
+dependencies:
+  collection: ^1.17.0
+  checked_yaml: ^2.0.1
+  pubspec_parse: ^1.2.1
+
+dev_dependencies:
+  analyzer: ^5.3.1
+  build: ^2.3.1
+  build_runner: ^2.3.3
+  meta: ^1.8.0
+  source_gen: ^1.2.6
+
+# dependency_overrides:
+#   checked_yaml: ^2.0.1
+#   pubspec_parse: ^1.2.1

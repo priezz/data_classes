@@ -1,9 +1,8 @@
 import 'package:analyzer/dart/ast/ast.dart';
-// import 'package:analyzer/dart/ast/syntactic_entity.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:dartx/dartx.dart';
+import 'package:collection/collection.dart';
 
 final nullableQualifierRegex = RegExp(r'\?$');
 
@@ -45,7 +44,7 @@ Future<String> getFieldTypeString(
     final String? result = (node.parent != null ? node.parent! : node)
         .childEntities
         .map((e) => e.toString())
-        .firstOrNullWhere(
+        .firstWhereOrNull(
           (e) =>
               e.isNotEmpty &&
               !e.startsWith('@') &&
@@ -85,7 +84,7 @@ Future<String> getTypeString(
       );
       final String? result = unit.declarations
           .map((d) => d.childEntities.take(4).toList())
-          .firstOrNullWhere(
+          .firstWhereOrNull(
             (items) =>
                 items.length >= 4 &&
                 items[0].toString() == 'typedef' &&
@@ -105,7 +104,7 @@ Future<String> getTypeString(
           : null;
       if (node != null) {
         final String? result =
-            node.childEntities.map((e) => e.toString()).firstOrNullWhere(
+            node.childEntities.map((e) => e.toString()).firstWhereOrNull(
                   (e) =>
                       e.isNotEmpty &&
                       !e.startsWith('@') &&

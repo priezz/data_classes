@@ -1,12 +1,12 @@
+import 'package:collection/collection.dart';
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:dartx/dartx.dart';
 
-import 'package:data_classes/data_classes.dart';
+import 'package:data_classes/src/utils/strings.dart';
 
-import 'types.dart';
+import '../types.dart';
 
 const _typeRegex = r'\w+(\s*<.+>)?';
 final RegExp _iterableRegex = RegExp(
@@ -223,7 +223,7 @@ extension on DartType {
 
 extension ElementX on Element {
   DartObject? get serializableAnnotation => metadata
-      .firstOrNullWhere(
+      .firstWhereOrNull(
         (annotation) =>
             annotation.element?.enclosingElement?.name == 'Serializable',
       )
@@ -240,7 +240,7 @@ extension ElementX on Element {
       ?.displayName;
 
   String? get jsonKey => metadata
-      .firstOrNullWhere((annotation) =>
+      .firstWhereOrNull((annotation) =>
           annotation.element?.enclosingElement?.name == 'JsonKey')
       ?.computeConstantValue()
       ?.getField('name')

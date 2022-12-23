@@ -1,9 +1,4 @@
-// ignore_for_file: undefined_class, uri_has_not_been_generated
 import 'package:data_classes/data_classes.dart';
-
-// ignore: unused_import
-import 'models_helpers.dart';
-export 'models_helpers.dart';
 
 part 'main.g.dart';
 

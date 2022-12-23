@@ -1,5 +1,14 @@
+targets:
+  $default:
+    builders:
+      source_gen|combining_builder:
+        options:
+          ignore_for_file:
+          - lint_alpha
+          - lint_beta
+
 builders:
-  data_classes:
+  generators:
     applies_builders: ["source_gen|combining_builder"]
     auto_apply: dependents
     build_extensions: { ".dart": [".data_class.g.part"] }
@@ -7,5 +16,5 @@ builders:
     builder_factories: ["generateDataClasses"]
     defaults:
       generate_for: [ "lib/**.dart", "test/**.dart" ]
-    import: "package:data_classes_generator/data_classes_generator.dart"
-    target: ":data_classes_generator"
+    import: "package:data_classes/generators.dart"
+    target: ":data_classes"
