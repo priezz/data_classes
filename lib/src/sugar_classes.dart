@@ -1,6 +1,6 @@
 import 'utils/types.dart';
 
-typedef C = void;
+typedef Class = void;
 typedef DataClassBuilder<T> = void Function(T);
 typedef DataClassAsyncBuilder<T> = Future<void> Function(T);
 typedef Json = Map<dynamic, dynamic>;
