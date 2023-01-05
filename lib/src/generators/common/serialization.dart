@@ -56,7 +56,7 @@ extension ClassGeneratorSerialization on ClassGenerator {
         '',
 
         /// _modelFromJson
-        'static $modelClassNameTyped _modelFromJson$genericTypes(Map<dynamic,dynamic> json,) {',
+        'static $modelClassNameTyped _modelFromJson$genericTypesFull(Map<dynamic,dynamic> json,) {',
         '  final model = $modelClassNameTyped();\n',
         for (final field in fields)
           ...await generateFieldDeserializer(

@@ -88,7 +88,8 @@ abstract class ClassGenerator {
 
   late final String className;
   late final String classNameTyped;
-  late final String genericTypes;
+  String genericTypes = '';
+  String genericTypesFull = '';
   late String modelClassNameTyped;
   late final String objectNamePrefix;
 
@@ -135,6 +136,14 @@ abstract class ClassGenerator {
               ),
           },
       };
+      if (modelClass!.typeParameters.isNotEmpty) {
+        genericTypesFull = await getElementTypeString(
+          modelClass!,
+          qualifiedImports,
+          predicate: (s) => RegExp(r'^<.*>$').hasMatch(s),
+          resolver: resolver,
+        );
+      }
     }
 
     return [];

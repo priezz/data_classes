@@ -35,7 +35,7 @@ extension ClassGeneratorCore on ClassGenerator {
 
         /// _modelCopy
         // TODO: Only when deserialization or copy methods are enabled
-        'static void _modelCopy$genericTypes($modelClassNameTyped source, $modelClassNameTyped dest,) => dest',
+        'static void _modelCopy$genericTypesFull($modelClassNameTyped source, $modelClassNameTyped dest,) => dest',
         for (final field in fields) '..${field.name} = source.${field.name}',
         ';',
         '',
@@ -49,7 +49,7 @@ extension ClassGeneratorCore on ClassGenerator {
               .replaceAll('{@nodoc}', ''),
         if (immutable) '@immutable',
         '${abstract ? 'abstract ' : ''}'
-            'class $classNameTyped ',
+            'class $className$genericTypesFull ',
         if (parentClassName != null)
           'extends $parentClassName$genericTypes'
         else ...[
@@ -71,7 +71,7 @@ extension ClassGeneratorCore on ClassGenerator {
         for (final field in fields) ...[
           if (field.documentationComment != null) field.documentationComment!,
           _fieldGetter(field),
-          if (!immutable) _fieldSetter(field),
+          if (!immutable) ..._fieldSetter(field),
         ],
         '',
       ];
@@ -80,7 +80,14 @@ extension ClassGeneratorCore on ClassGenerator {
       '${fieldTypes[field]} get ${field.name} => '
       '_model.${field.name};';
 
-  String _fieldSetter(VariableElement field) =>
-      'set ${field.name}(${fieldTypes[field]} value) => '
-      '_model.${field.name} = value;';
+  List<String> _fieldSetter(VariableElement field) => [
+        'set ${field.name}(${fieldTypes[field]} value) ',
+        if (changesListenerName != null) ...[
+          '{',
+          "_notifyOnPropChange$genericTypes('${field.name}', _model.${field.name}, value);",
+        ] else
+          ' => ',
+        '_model.${field.name} = value;',
+        if (changesListenerName != null) '}'
+      ];
 }

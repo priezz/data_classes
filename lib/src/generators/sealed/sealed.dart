@@ -9,11 +9,11 @@ import 'serialization.dart';
 class SealedClassGenerator extends ClassGenerator {
   SealedClassGenerator({
     required super.convertToSnakeCase,
-    required super.withCopy,
-    required super.withEquality,
     required super.immutable,
     required super.modelClass,
     required super.resolver,
+    required super.withCopy,
+    required super.withEquality,
     required super.withSerialize,
   }) : super(
           withBuiltValueSerializer: false,
@@ -45,8 +45,8 @@ class SealedClassGenerator extends ClassGenerator {
         for (final method in methods)
           (await DataClassGenerator(
             changesListenerName: null,
-            convertToSnakeCase: false,
-            immutable: false,
+            convertToSnakeCase: convertToSnakeCase,
+            immutable: immutable,
             modelClass: null,
             objectName: null,
             objectNameGetterName: null,

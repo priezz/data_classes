@@ -2,53 +2,61 @@ import 'package:data_classes/data_classes.dart';
 
 part 'main.g.dart';
 
-const pineappleJson = {
-  'color': 'yellow',
-  'extraInfo': {
-    'cultivatedIn': 'Costa Rica',
-    'priceInDollarsPerKg': 3.2,
-  },
-  'name': 'Pineapple',
-  'weightInGrams': 500,
-};
+enum AppleColor { red, yellow, green }
 
-enum Color { red, yellow, green, brown, orange }
+@Sealed(immutable: true)
+abstract class FruitModel {
+  apple(AppleColor color);
+  plum();
+  orange();
 
-/// A fruit with a doc comment
-@DataClass(
-  immutable: true,
-  changeListener: listener,
-)
-class FruitModel {
-  Color? color;
-  Map<String, dynamic> extraInfo = {};
-  late String name;
-  @JsonMethods(fromJson: treeFromJson)
-  late Tree tree;
+  // @JsonMethods(fromJson: treeFromJson)
   @JsonKey('weightInGrams')
   late double weight;
 }
 
-@DataClass(immutable: true)
-class TreeModel {
-  late String name;
-  double? averageHeight;
+/// Box with some [T] fruits
+@DataClass(
+  changeListener: onBoxUpdate,
+)
+class BoxModel<T extends Fruit> {
+  int quantity = 0;
+  @JsonKey('capacity')
+  int? maxCapacity;
 }
 
-Tree treeFromJson(dynamic json) =>
-    json is Map ? Tree.fromJson(json) : Tree(name: 'Imaginary tree');
+extension BoxAdd<T extends Fruit> on Box<T> {
+  void add(T fruit) => quantity++;
+}
 
-Future<void> listener(path, {next, prev, toJson}) async =>
-    print('$path: $prev -> $next');
+/// Fruit shop
+@DataClass(
+  changeListener: onShopUpdate,
+)
+class ShopModel {
+  List<Box> boxes = [];
+  late String name;
+}
 
-Future<void> main() async {
-  final pineapple = Fruit.fromJson(pineappleJson);
-  final pineappleCopy = pineapple.copy();
-  print('Pineapple: $pineapple');
-  print(
-    'Pineapple is ${pineappleCopy != pineapple ? 'not ' : ''}equal to its copy',
-  );
+Future<void> onBoxUpdate<T extends Fruit>(String? path,
+        {Object? next, Object? prev}) async =>
+    print('[BOX<$T>] $path: $prev -> $next');
+Future<void> onShopUpdate(String? path, {Object? next, Object? prev}) async =>
+    print('[SHOP] $path: $prev -> $next');
 
-  final heavyPineapple = pineapple.copyWith(weight: 1500);
-  print('Heavy pineapple: $heavyPineapple');
+void main() {
+  Shop shop = Shop(name: 'My Fruit Shop');
+  final Box<FruitApple> apples = Box(maxCapacity: 50);
+  final Box mixed = Box(maxCapacity: 10);
+  final Box<FruitOrange> oranges = Box(maxCapacity: 20);
+  final Box<FruitPlum> plums = Box(quantity: 100);
+  apples.add(
+    Fruit.apple(color: AppleColor.red, weight: 120),
+  ); // -> OK, notification
+  // apples.add(Fruit.orange(weight: 160)); // -> compiler error
+  mixed.add(
+    Fruit.orange(weight: 160),
+  ); // -> OK, notification
+  shop.boxes.addAll([mixed, oranges]); // -> no notification
+  shop.boxes = [apples, mixed, oranges, plums]; // -> notification
 }

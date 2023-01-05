@@ -32,37 +32,44 @@ extension DartTypeX on DartType {
 
 /// Finds non-resolved field type string
 Future<String> getElementTypeString(
-  VariableElement element,
+  Element element,
   Map<String, String> qualifiedImports, {
   required Resolver resolver,
+  bool debug = false,
   bool lookupParent = false,
+  bool Function(String)? predicate,
 }) async {
-  final DartType type = element.type;
+  final DartType? type = element is VariableElement ? element.type : null;
 
-  final AstNode? node = await resolver.astNodeFor(element);
-  late final String typeDeclaration;
+  AstNode? node;
+  try {
+    node = await resolver.astNodeFor(element);
+  } catch (_) {}
+  String? typeDeclaration;
   if (node != null) {
-    final String? result =
+    final Iterable<String> children =
         (lookupParent && node.parent != null ? node.parent! : node)
             .childEntities
             .map((e) => e.toString())
-            .firstWhereOrNull(
-              (e) =>
-                  e.isNotEmpty &&
-                  !e.startsWith('@') &&
-                  !['class', 'abstract'].contains(e),
+            .where(
+              (e) => e.isNotEmpty && !e.startsWith('@') && e != 'abstract',
             );
-    typeDeclaration =
-        result?.replaceAll(RegExp(r'\s+' + element.name + r'$'), '') ??
-            type.getDisplayString(withNullability: false);
+    if (debug) children.forEach(print);
+    final String? result =
+        children.firstWhereOrNull((e) => predicate?.call(e) ?? e != 'class');
+    if (element.name != null) {
+      typeDeclaration =
+          result?.replaceAll(RegExp(r'\s+' + element.name! + r'$'), '');
+    }
+    typeDeclaration ??= type?.getDisplayString(withNullability: false);
   } else {
     print(
       '------ Could not find node with `${element.name}` element declaration. ------',
     );
-    typeDeclaration = type.getDisplayString(withNullability: false);
+    typeDeclaration = type?.getDisplayString(withNullability: false);
   }
 
-  final LibraryElement? typeLibrary = type.element!.library;
+  final LibraryElement? typeLibrary = type?.element!.library;
   final String? prefixOrNull = qualifiedImports[typeLibrary?.identifier];
   final String prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
 

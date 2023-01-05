@@ -6,8 +6,11 @@ import 'sealed.dart';
 
 extension SealedClassGeneratorCore on SealedClassGenerator {
   Iterable<String> generateConstructors() => [
+        '/// Prevent inheritance',
+        '$className._();',
+        '',
         for (final method in methods) ...[
-          'factory $className.${method.name}({',
+          'static ${getSubclassNameTyped(method)} ${method.name}({',
           for (final field in requiredFields)
             '  required ${fieldDeclaration(field, required: true)},',
           for (final field in nonRequiredFields)
@@ -23,8 +26,6 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
             '${param.name}: ${param.name}, ',
           ');',
         ],
-        '',
-        '$className._();',
         '',
       ];
 

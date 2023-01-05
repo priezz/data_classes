@@ -1,12 +1,6 @@
-**/*.lock
-**/*.g.dart
-
-data_classes/.dart_tool
-data_classes/.packages
-data_classes_generator/.dart_tool
-data_classes_generator/.packages
-example/.dart_tool
-example/.packages
+**/.dart_tool
+**/.packages
 .history
 .syncignore
 .DS_Store
+**/build

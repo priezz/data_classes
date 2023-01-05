@@ -2,22 +2,22 @@ import 'common.dart';
 
 extension ClassGeneratorNotification on ClassGenerator {
   Iterable<String> generateChangesNotificator() => [
-        'static void _notifyOnPropChanges($modelClassNameTyped prev, $modelClassNameTyped next,) {',
-        '  Future<void> notify(String name, dynamic Function($modelClassNameTyped) get, $modelClassNameTyped Function($modelClassNameTyped, dynamic) set,) async {',
-        '    final prevValue = get(prev);',
-        '    final nextValue = get(next);',
-        '    if (!eqShallow(nextValue, prevValue)) {',
-        '      await $changesListenerName(',
-        "        '$objectNamePrefix\$name',",
-        '        next: nextValue,',
-        '        prev: prevValue,',
-        '      );',
-        '    }',
-        '  }\n',
+        'static void _notifyOnCopy$genericTypesFull($modelClassNameTyped prev, $modelClassNameTyped next,) {',
         '  Future.wait([',
         for (final field in fields)
-          "  notify('${field.name}', (m) => m.${field.name}, (m, v) => m..${field.name} = v as ${fieldTypes[field]},),",
+          "_notifyOnPropChange$genericTypes('${field.name}', prev.${field.name}, next.${field.name}),",
         '  ]);',
         '}',
+        '',
+        'static Future<void> _notifyOnPropChange$genericTypesFull(String name, dynamic prev, dynamic next) async {',
+        '  if (!eqShallow(next, prev)) {',
+        '    await $changesListenerName$genericTypes(',
+        "      '$objectNamePrefix\$name',",
+        '      next: next,',
+        '      prev: prev',
+        '    );',
+        '  }',
+        '}',
+        '',
       ];
 }
