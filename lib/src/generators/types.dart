@@ -31,29 +31,33 @@ extension DartTypeX on DartType {
 }
 
 /// Finds non-resolved field type string
-Future<String> getFieldTypeString(
-  FieldElement field,
+Future<String> getElementTypeString(
+  VariableElement element,
   Map<String, String> qualifiedImports, {
   required Resolver resolver,
+  bool lookupParent = false,
 }) async {
-  final DartType type = field.type;
+  final DartType type = element.type;
 
-  final AstNode? node = await resolver.astNodeFor(field);
+  final AstNode? node = await resolver.astNodeFor(element);
   late final String typeDeclaration;
   if (node != null) {
-    final String? result = (node.parent != null ? node.parent! : node)
-        .childEntities
-        .map((e) => e.toString())
-        .firstWhereOrNull(
-          (e) =>
-              e.isNotEmpty &&
-              !e.startsWith('@') &&
-              !['class', 'abstract'].contains(e),
-        );
-    typeDeclaration = result ?? type.getDisplayString(withNullability: false);
+    final String? result =
+        (lookupParent && node.parent != null ? node.parent! : node)
+            .childEntities
+            .map((e) => e.toString())
+            .firstWhereOrNull(
+              (e) =>
+                  e.isNotEmpty &&
+                  !e.startsWith('@') &&
+                  !['class', 'abstract'].contains(e),
+            );
+    typeDeclaration =
+        result?.replaceAll(RegExp(r'\s+' + element.name + r'$'), '') ??
+            type.getDisplayString(withNullability: false);
   } else {
     print(
-      '------ Could not find node with `${field.name}` field declaration. ------',
+      '------ Could not find node with `${element.name}` element declaration. ------',
     );
     typeDeclaration = type.getDisplayString(withNullability: false);
   }

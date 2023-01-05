@@ -1,19 +1,10 @@
-targets:
-  $default:
-    builders:
-      source_gen|combining_builder:
-        options:
-          ignore_for_file:
-          - lint_alpha
-          - lint_beta
-
 builders:
   generators:
     applies_builders: ["source_gen|combining_builder"]
     auto_apply: dependents
-    build_extensions: { ".dart": [".data_class.g.part"] }
+    build_extensions: { ".dart": [".sugar.g.part"] }
     build_to: cache
-    builder_factories: ["generateDataClasses"]
+    builder_factories: ["generateSugarClasses"]
     defaults:
       generate_for: [ "lib/**.dart", "test/**.dart" ]
     import: "package:data_classes/generators.dart"

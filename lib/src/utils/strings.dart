@@ -4,6 +4,11 @@ extension StringX on String {
         (match) => '_${match.group(0)?.toLowerCase() ?? ''}',
       );
 
+  String get capitalized => this.replaceFirstMapped(
+        RegExp('[A-Za-z]'),
+        (m) => m.group(0)?.toUpperCase() ?? '',
+      );
+
   String get decapitalized => this.replaceFirstMapped(
         RegExp('[A-Za-z]'),
         (m) => m.group(0)?.toLowerCase() ?? '',

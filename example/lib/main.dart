@@ -23,7 +23,7 @@ class FruitModel {
   Color? color;
   Map<String, dynamic> extraInfo = {};
   late String name;
-  @Serializable(fromJson: treeFromJson)
+  @JsonMethods(fromJson: treeFromJson)
   late Tree tree;
   @JsonKey('weightInGrams')
   late double weight;

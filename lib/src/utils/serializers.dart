@@ -1,31 +1,25 @@
-import '../data_classes.dart' show IDataClass;
+import '../sugar_classes.dart' show ISerializable;
 
 dynamic serializeToJson(dynamic obj) {
   if (obj == null) return null;
-
   if (obj is Map) {
     return {
       for (final entry in obj.entries)
         '${serializeToJson(entry.key)}': serializeToJson(entry.value),
     };
   }
-
   if (obj is Iterable) {
     return [
       for (final entry in obj) serializeToJson(entry),
     ];
   }
-
   if (obj is bool || obj is num || obj is String) return obj;
-
   if (obj is DateTime) return obj.toIso8601String();
-
   if (obj is Enum) return obj.name;
-
   if (obj is double) return obj.isFinite ? obj : 'NaN';
 
   try {
-    if (obj is IDataClass || obj.toJson is Function) return obj.toJson();
+    if (obj is ISerializable || obj.toJson is Function) return obj.toJson();
   } catch (_) {}
 
   throw Exception('Invalid json field: $obj');
