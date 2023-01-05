@@ -17,7 +17,7 @@ enum Color { red, yellow, green, brown, orange }
 /// A fruit with a doc comment
 @DataClass(
   immutable: true,
-  childrenListener: listener,
+  changeListener: listener,
 )
 class FruitModel {
   Color? color;
