@@ -3,6 +3,9 @@
 // ignore: non_constant_identifier_names
 final Void = getType<void>();
 
+/// Returns [x as T] if [x] is of type [T] or [fallback] otherwise.
+T castOr<T>(dynamic x, T fallback) => x != null && x is T ? x : fallback;
+
 /// Returns [x as T] if [x] is of type [T] or null otherwise.
 T? castOrNull<T>(dynamic x) => x != null && x is T ? x : null;
 
