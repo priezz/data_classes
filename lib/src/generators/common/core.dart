@@ -26,7 +26,7 @@ extension ClassGeneratorCore on ClassGenerator {
 
         /// _build
         // TODO: use List.unmodifiable and Map.unmodifiable for immutable classes
-        '$className._build(DataClassBuilder<$modelClassNameTyped> builder,) ',
+        '$className._build(ModelBuilder<$modelClassNameTyped> builder,) ',
         if (parentClassName != null) ': super._() ',
         '{',
         '  builder.call(_model);',

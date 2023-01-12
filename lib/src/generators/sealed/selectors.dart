@@ -6,6 +6,9 @@ import 'sealed.dart';
 extension SealedClassSelectors on SealedClassGenerator {
   Iterable<String> generateSelectors() => [
         /// maybe
+        '/// Returns the value when a method for a [$className] subclass corresponding',
+        '/// to [this] is provided or from the \$else] method when it is not.',
+        '/// Null is returned when a subclass method nor [\$else] are not provided.',
         'R? maybe<R>({',
         for (final method in methods)
           'R Function(${getSubclassNameTyped(method)})? ${method.name},',
@@ -28,10 +31,23 @@ extension SealedClassSelectors on SealedClassGenerator {
         '}',
         '',
 
+        /// when
+        '/// Returns a result<R> from the method for a [$className] subclass',
+        '/// corresponding to [this].',
+        'R when<R>({',
+        for (final method in methods)
+          'required R Function(${getSubclassNameTyped(method)}) ${method.name},',
+        '}) => whenOrNull(',
+        for (final method in methods) '${method.name}: ${method.name},',
+        ') as R;',
+        '',
+
         /// whenOrNull
+        '/// Returns the value when a method for a [$className] subclass corresponding',
+        '/// to [this] is provided or null when it is not.',
         'R? whenOrNull<R>({',
         for (final method in methods)
-          'R Function(${getSubclassNameTyped(method)})? ${method.name},',
+          'R? Function(${getSubclassNameTyped(method)})? ${method.name},',
         '}) {',
         '  final self = this;',
         [
@@ -48,18 +64,12 @@ extension SealedClassSelectors on SealedClassGenerator {
         '}',
         '',
 
-        /// when
-        'R when<R>({',
-        for (final method in methods)
-          'required R Function(${getSubclassNameTyped(method)}) ${method.name},',
-        '}) => whenOrNull(',
-        for (final method in methods) '${method.name}: ${method.name},',
-        ')!;',
-        '',
-
         /// whenSubclass
-        for (final method in methods)
+        for (final method in methods) ...[
+          '/// Returns the value when a [this] is [${getSubclassNameTyped(method)}]',
+          '/// or null when it is not.',
           'R? when${method.name.capitalized}<R>(R Function(${getSubclassNameTyped(method)}) f) => this is ${getSubclassNameTyped(method)} ? f(this as ${getSubclassNameTyped(method)}) : null;',
+        ],
         '',
 
         /// asSubclassOrNull

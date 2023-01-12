@@ -11,7 +11,7 @@ extension ClassGeneratorCopy on ClassGenerator {
         /// copy
         '/// Creates a new instance of [$className],',
         '/// which is a copy of this with some changes',
-        '@override $classNameTyped copy([DataClassBuilder<$modelClassNameTyped>? update,]) => $classNameTyped._build((dest) {',
+        '@override $classNameTyped copy([ModelBuilder<$modelClassNameTyped>? update,]) => $classNameTyped._build((dest) {',
         '  _modelCopy(_model, dest);',
         '  update?.call(dest);',
         if (changesListenerName != null) '  _notifyOnCopy(_model, dest);',
@@ -20,7 +20,7 @@ extension ClassGeneratorCopy on ClassGenerator {
         /// copyAsync
         '/// Creates a new instance of [$className],',
         '/// which is a copy of this with some changes',
-        '@override Future<$classNameTyped> copyAsync([DataClassAsyncBuilder<$modelClassNameTyped>? update,]) async {',
+        '@override Future<$classNameTyped> copyAsync([ModelBuilderAsync<$modelClassNameTyped>? update,]) async {',
         'final model = $modelClassNameTyped();',
         '_modelCopy(_model, model);',
         'await update?.call(model);\n',

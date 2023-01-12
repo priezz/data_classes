@@ -30,22 +30,17 @@ extension DartTypeX on DartType {
       : const [];
 }
 
-/// Finds non-resolved field type string
-Future<String> getElementTypeString(
-  Element element,
-  Map<String, String> qualifiedImports, {
+/// Finds an element declaration and returns its parts.
+Future<Iterable<String>> getElementDeclaration(
+  Element element, {
   required Resolver resolver,
   bool debug = false,
   bool lookupParent = false,
-  bool Function(String)? predicate,
 }) async {
-  final DartType? type = element is VariableElement ? element.type : null;
-
   AstNode? node;
   try {
     node = await resolver.astNodeFor(element);
   } catch (_) {}
-  String? typeDeclaration;
   if (node != null) {
     final Iterable<String> children =
         (lookupParent && node.parent != null ? node.parent! : node)
@@ -54,26 +49,64 @@ Future<String> getElementTypeString(
             .where(
               (e) => e.isNotEmpty && !e.startsWith('@') && e != 'abstract',
             );
-    if (debug) children.forEach(print);
-    final String? result =
-        children.firstWhereOrNull((e) => predicate?.call(e) ?? e != 'class');
-    if (element.name != null) {
-      typeDeclaration =
-          result?.replaceAll(RegExp(r'\s+' + element.name! + r'$'), '');
+    if (debug) {
+      StringBuffer s = StringBuffer('${element.source?.uri}:${node.offset}\n');
+      children.forEach(s.writeln);
+      print(s);
     }
-    typeDeclaration ??= type?.getDisplayString(withNullability: false);
+
+    return children;
   } else {
-    print(
-      '------ Could not find node with `${element.name}` element declaration. ------',
-    );
-    typeDeclaration = type?.getDisplayString(withNullability: false);
+    return [];
+  }
+}
+
+/// Finds non-resolved field type string
+Future<String> getElementTypeString(
+  Element element,
+  // Map<String, String> qualifiedImports,
+  {
+  required Resolver resolver,
+  bool debug = false,
+  Iterable<String>? declaration,
+  bool lookupParent = false,
+  bool Function(String)? predicate,
+}) async {
+  // final DartType? type = element is VariableElement ? element.type : null;
+
+  final Iterable<String> declarationEffective = declaration ??
+      await getElementDeclaration(
+        element,
+        debug: debug,
+        lookupParent: lookupParent,
+        resolver: resolver,
+      );
+  String? typeDeclaration;
+  if (declarationEffective.isEmpty) {
+    throw ('------ Could not find node with `${element.name}` element declaration. ------');
   }
 
-  final LibraryElement? typeLibrary = type?.element!.library;
-  final String? prefixOrNull = qualifiedImports[typeLibrary?.identifier];
-  final String prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
+  final String? result = declarationEffective
+      .firstWhereOrNull((e) => predicate?.call(e) ?? e != 'class');
+  if (element.name != null) {
+    typeDeclaration =
+        result?.replaceAll(RegExp(r'\s+' + element.name! + r'$'), '');
+  }
+  // typeDeclaration ??= type?.getDisplayString(withNullability: false);
+  if (typeDeclaration == null) {
+    throw ('------ Could not find type for the `${element.name}` element. ------');
+  }
 
-  return '$prefix$typeDeclaration'.trim();
+  return typeDeclaration.trim();
+  // } else {
+  //   // typeDeclaration = type?.getDisplayString(withNullability: false);
+  // }
+
+  // final LibraryElement? typeLibrary = type?.element!.library;
+  // final String? prefixOrNull = qualifiedImports[typeLibrary?.identifier];
+  // final String prefix = (prefixOrNull != null) ? '$prefixOrNull.' : '';
+
+  // return '$prefix$typeDeclaration'.trim();
 }
 
 /// Finds non-resolved type string

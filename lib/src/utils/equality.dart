@@ -25,8 +25,9 @@ bool _mapCompare(Map? e1, Map? e2, EqualityFn equalityFn) {
   bool keysEqual =
       const DeepCollectionEquality.unordered().equals(e1?.keys, e2?.keys);
   if (!keysEqual) return false;
-  if (e1 == null || e2 == null)
+  if (e1 == null || e2 == null) {
     return (e1?.isEmpty ?? true) && (e2?.isEmpty ?? true);
+  }
 
   final Set keys = {...e1.keys, ...e2.keys};
   for (final key in keys) {

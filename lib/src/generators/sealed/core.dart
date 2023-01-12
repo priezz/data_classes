@@ -10,7 +10,7 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
         '$className._();',
         '',
         for (final method in methods) ...[
-          'static ${getSubclassNameTyped(method)} ${method.name}({',
+          'static ${getSubclassNameTyped(method)} ${method.name}$genericTypesFull({',
           for (final field in requiredFields)
             '  required ${fieldDeclaration(field, required: true)},',
           for (final field in nonRequiredFields)
@@ -26,6 +26,9 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
             '${param.name}: ${param.name}, ',
           ');',
         ],
+        '',
+        '/// Prevents `unused_element` warning for the sealed class definition',
+        'static void _dummy(_${className}Model _) {}',
         '',
       ];
 

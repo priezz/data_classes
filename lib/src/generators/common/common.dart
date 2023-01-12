@@ -24,9 +24,12 @@ abstract class ClassGenerator {
     required this.objectNameGetterName,
     required this.resolver,
     required this.withSerialize,
+
+    /// overrides
     String? classNameOverride,
     Map<VariableElement, String>? fieldTypesOverride,
     String? genericTypesOverride,
+    String? genericTypesFullOverride,
     String? modelClassNameOverride,
     this.parentClassName,
     Map<String, String>? qualifiedImportsOverride,
@@ -36,6 +39,7 @@ abstract class ClassGenerator {
           classNameOverride != null &&
               fieldTypesOverride != null &&
               genericTypesOverride != null &&
+              genericTypesFullOverride != null &&
               modelClassNameOverride != null &&
               qualifiedImportsOverride != null,
     );
@@ -55,6 +59,7 @@ abstract class ClassGenerator {
       _fields = fieldTypesOverride!.keys.toList();
       fieldTypes = fieldTypesOverride;
       genericTypes = genericTypesOverride!;
+      genericTypesFull = genericTypesFullOverride!;
       modelClassNameTyped = '$modelClassNameOverride$genericTypes';
       qualifiedImports = qualifiedImportsOverride!;
     }
@@ -95,6 +100,7 @@ abstract class ClassGenerator {
 
   List<VariableElement> get fields => modelClass?.fields ?? _fields;
   List<MethodElement> get methods => modelClass?.methods ?? [];
+  Map<VariableElement, String> fieldDefaultValues = {};
   Map<VariableElement, String> fieldTypes = {};
   Map<MethodElement, Map<VariableElement, String>> paramsTypes = {};
   final List<VariableElement> nonRequiredFields = [];
@@ -116,22 +122,40 @@ abstract class ClassGenerator {
             import.importedLibrary!.identifier: import.prefix!.element.name,
       };
 
-      fieldTypes = {
+      final Map<VariableElement, Iterable<String>> declarations = {
         for (final field in fields)
-          field: await getElementTypeString(
+          field: await getElementDeclaration(
             field,
-            qualifiedImports,
             lookupParent: true,
             resolver: resolver,
           ),
       };
+      fieldTypes = {
+        for (final field in fields)
+          field: await getElementTypeString(
+            field,
+            // qualifiedImports,
+            declaration: declarations[field]!,
+            lookupParent: true,
+            resolver: resolver,
+          ),
+      };
+      for (final field in fields) {
+        for (final item in declarations[field]!) {
+          final RegExpMatch? match = RegExp(r'^.*=\s*(.*)$').firstMatch(item);
+          if (match != null) {
+            fieldDefaultValues[field] = match.group(1)!;
+            break;
+          }
+        }
+      }
       paramsTypes = {
         for (final method in methods)
           method: {
             for (final param in method.parameters)
               param: await getElementTypeString(
                 param,
-                qualifiedImports,
+                // qualifiedImports,
                 resolver: resolver,
               ),
           },
@@ -139,7 +163,7 @@ abstract class ClassGenerator {
       if (modelClass!.typeParameters.isNotEmpty) {
         genericTypesFull = await getElementTypeString(
           modelClass!,
-          qualifiedImports,
+          // qualifiedImports,
           predicate: (s) => RegExp(r'^<.*>$').hasMatch(s),
           resolver: resolver,
         );

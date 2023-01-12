@@ -1,9 +1,9 @@
 import 'utils/types.dart';
 
 typedef Class = void;
-typedef DataClassBuilder<T> = void Function(T);
-typedef DataClassAsyncBuilder<T> = Future<void> Function(T);
 typedef Json = Map<dynamic, dynamic>;
+typedef ModelBuilder<T> = void Function(T);
+typedef ModelBuilderAsync<T> = Future<void> Function(T);
 
 class JsonDeserializationError implements Exception {
   JsonDeserializationError(this.cause);
@@ -14,9 +14,9 @@ class JsonDeserializationError implements Exception {
 }
 
 abstract class ICopyable<T extends ICopyable<T, TModel>, TModel> {
-  T copy([DataClassBuilder<TModel>? update]);
+  T copy([ModelBuilder<TModel>? update]);
 
-  Future<T> copyAsync([DataClassAsyncBuilder<TModel>? update]);
+  Future<T> copyAsync([ModelBuilderAsync<TModel>? update]);
 
   T copyWith();
 }
@@ -28,7 +28,9 @@ abstract class IReflective {
 }
 
 abstract class ISealed {
+  R? maybe<R>();
   R when<R>();
+  R? whenOrNull<R>();
 }
 
 abstract class ISerializable {

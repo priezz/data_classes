@@ -130,7 +130,7 @@ class FruitApple extends Fruit {
       );
 
   FruitApple._build(
-    DataClassBuilder<_FruitAppleModel> builder,
+    ModelBuilder<_FruitAppleModel> builder,
   ) : super._() {
     builder.call(_model);
   }
@@ -226,7 +226,7 @@ class FruitApple extends Fruit {
   /// which is a copy of this with some changes
   @override
   FruitApple copy([
-    DataClassBuilder<_FruitAppleModel>? update,
+    ModelBuilder<_FruitAppleModel>? update,
   ]) =>
       FruitApple._build((dest) {
         _modelCopy(_model, dest);
@@ -237,7 +237,7 @@ class FruitApple extends Fruit {
   /// which is a copy of this with some changes
   @override
   Future<FruitApple> copyAsync([
-    DataClassAsyncBuilder<_FruitAppleModel>? update,
+    ModelBuilderAsync<_FruitAppleModel>? update,
   ]) async {
     final model = _FruitAppleModel();
     _modelCopy(_model, model);
@@ -282,7 +282,7 @@ class FruitPlum extends Fruit {
       );
 
   FruitPlum._build(
-    DataClassBuilder<_FruitPlumModel> builder,
+    ModelBuilder<_FruitPlumModel> builder,
   ) : super._() {
     builder.call(_model);
   }
@@ -361,7 +361,7 @@ class FruitPlum extends Fruit {
   /// which is a copy of this with some changes
   @override
   FruitPlum copy([
-    DataClassBuilder<_FruitPlumModel>? update,
+    ModelBuilder<_FruitPlumModel>? update,
   ]) =>
       FruitPlum._build((dest) {
         _modelCopy(_model, dest);
@@ -372,7 +372,7 @@ class FruitPlum extends Fruit {
   /// which is a copy of this with some changes
   @override
   Future<FruitPlum> copyAsync([
-    DataClassAsyncBuilder<_FruitPlumModel>? update,
+    ModelBuilderAsync<_FruitPlumModel>? update,
   ]) async {
     final model = _FruitPlumModel();
     _modelCopy(_model, model);
@@ -413,7 +413,7 @@ class FruitOrange extends Fruit {
       );
 
   FruitOrange._build(
-    DataClassBuilder<_FruitOrangeModel> builder,
+    ModelBuilder<_FruitOrangeModel> builder,
   ) : super._() {
     builder.call(_model);
   }
@@ -492,7 +492,7 @@ class FruitOrange extends Fruit {
   /// which is a copy of this with some changes
   @override
   FruitOrange copy([
-    DataClassBuilder<_FruitOrangeModel>? update,
+    ModelBuilder<_FruitOrangeModel>? update,
   ]) =>
       FruitOrange._build((dest) {
         _modelCopy(_model, dest);
@@ -503,7 +503,7 @@ class FruitOrange extends Fruit {
   /// which is a copy of this with some changes
   @override
   Future<FruitOrange> copyAsync([
-    DataClassAsyncBuilder<_FruitOrangeModel>? update,
+    ModelBuilderAsync<_FruitOrangeModel>? update,
   ]) async {
     final model = _FruitOrangeModel();
     _modelCopy(_model, model);
@@ -560,7 +560,7 @@ class Box<T extends Fruit>
       );
 
   Box._build(
-    DataClassBuilder<BoxModel<T>> builder,
+    ModelBuilder<BoxModel<T>> builder,
   ) {
     builder.call(_model);
   }
@@ -657,7 +657,7 @@ class Box<T extends Fruit>
   /// which is a copy of this with some changes
   @override
   Box<T> copy([
-    DataClassBuilder<BoxModel<T>>? update,
+    ModelBuilder<BoxModel<T>>? update,
   ]) =>
       Box<T>._build((dest) {
         _modelCopy(_model, dest);
@@ -669,7 +669,7 @@ class Box<T extends Fruit>
   /// which is a copy of this with some changes
   @override
   Future<Box<T>> copyAsync([
-    DataClassAsyncBuilder<BoxModel<T>>? update,
+    ModelBuilderAsync<BoxModel<T>>? update,
   ]) async {
     final model = BoxModel<T>();
     _modelCopy(_model, model);
@@ -733,7 +733,7 @@ class Shop implements ICopyable<Shop, ShopModel>, IEquitable, ISerializable {
       );
 
   Shop._build(
-    DataClassBuilder<ShopModel> builder,
+    ModelBuilder<ShopModel> builder,
   ) {
     builder.call(_model);
   }
@@ -833,7 +833,7 @@ class Shop implements ICopyable<Shop, ShopModel>, IEquitable, ISerializable {
   /// which is a copy of this with some changes
   @override
   Shop copy([
-    DataClassBuilder<ShopModel>? update,
+    ModelBuilder<ShopModel>? update,
   ]) =>
       Shop._build((dest) {
         _modelCopy(_model, dest);
@@ -845,7 +845,7 @@ class Shop implements ICopyable<Shop, ShopModel>, IEquitable, ISerializable {
   /// which is a copy of this with some changes
   @override
   Future<Shop> copyAsync([
-    DataClassAsyncBuilder<ShopModel>? update,
+    ModelBuilderAsync<ShopModel>? update,
   ]) async {
     final model = ShopModel();
     _modelCopy(_model, model);

@@ -11,7 +11,7 @@ extension SealedClassModels on SealedClassGenerator {
           // '${field.hasInitializer || field.isNullable(fieldTypes) ? '' : 'late '}'
           '${field.isNullable(fieldTypes) ? '' : 'late '}'
               '${fieldDeclaration(field, required: true)}'
-              // '${field.hasInitializer ? ' = ${field.}' : ''}'
+              '${fieldDefaultValues[field] != null ? ' = ${fieldDefaultValues[field]}' : ''}'
               ';',
         '}',
         '',

@@ -63,6 +63,7 @@ class SealedClassGenerator extends ClassGenerator {
               ...fieldTypes,
             },
             genericTypesOverride: genericTypes,
+            genericTypesFullOverride: genericTypesFull,
             modelClassNameOverride: getModelSubclassName(method),
             parentClassName: className,
             qualifiedImportsOverride: qualifiedImports,

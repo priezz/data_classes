@@ -24,6 +24,7 @@ class DataClassGenerator extends ClassGenerator {
     super.classNameOverride,
     super.fieldTypesOverride,
     super.genericTypesOverride,
+    super.genericTypesFullOverride,
     super.modelClassNameOverride,
     super.parentClassName,
     super.qualifiedImportsOverride,
