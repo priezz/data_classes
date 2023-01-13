@@ -16,9 +16,7 @@ abstract class FruitModel {
 }
 
 /// Box with some [T] fruits
-@DataClass(
-  changeListener: onBoxUpdate,
-)
+@DataClass(observers: [onBoxUpdate])
 class BoxModel<T extends Fruit> {
   int quantity = 0;
   @JsonKey('capacity')
@@ -30,19 +28,25 @@ extension BoxAdd<T extends Fruit> on Box<T> {
 }
 
 /// Fruit shop
-@DataClass(
-  changeListener: onShopUpdate,
-)
+@DataClass(observers: [onShopUpdate])
 class ShopModel {
   List<Box> boxes = [];
   late String name;
 }
 
-Future<void> onBoxUpdate<T extends Fruit>(String? path,
-        {Object? next, Object? prev}) async =>
-    print('[BOX<$T>] $path: $prev -> $next');
-Future<void> onShopUpdate(String? path, {Object? next, Object? prev}) async =>
-    print('[SHOP] $path: $prev -> $next');
+Future<void> onBoxUpdate<T>({
+  required String name,
+  required T? newValue,
+  required T? oldValue,
+}) async =>
+    print('[BOX<$T>] $name: $oldValue -> $newValue');
+
+Future<void> onShopUpdate<T>({
+  required String name,
+  required T? newValue,
+  required T? oldValue,
+}) async =>
+    print('[SHOP] $name: $oldValue -> $newValue');
 
 void main() {
   Shop shop = Shop(name: 'My Fruit Shop');

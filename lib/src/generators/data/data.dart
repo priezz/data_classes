@@ -1,23 +1,20 @@
 import 'package:data_classes/src/generators/common/common.dart';
 
-// import 'copy.dart';
-// import 'core.dart';
-// import 'equality.dart';
-// import 'notification.dart';
-// import 'serialization.dart';
-
 class DataClassGenerator extends ClassGenerator {
   DataClassGenerator({
-    required super.withBuiltValueSerializer,
-    required super.changesListenerName,
     required super.convertToSnakeCase,
-    required super.withCopy,
-    required super.withEquality,
     required super.immutable,
     required super.modelClass,
+    required super.mutateFromActionsOnly,
     required super.objectName,
     required super.objectNameGetterName,
+    required super.observableFields,
+    required super.observerNames,
     required super.resolver,
+    required super.withBuiltValueSerializer,
+    required super.withCopy,
+    required super.withEquality,
+    required super.withReflection,
     required super.withSerialize,
 
     /// overrides
@@ -31,24 +28,24 @@ class DataClassGenerator extends ClassGenerator {
   });
 
   @override
-  Future<Iterable<String>> generate() async {
-    await super.generate();
-
-    return [
-      generateClassHeader(),
-      ['{'],
-      generateConstructors(),
-      if (withSerialize) await generateDeserializer(),
-      generateFields(),
-      generateEqualityOperator(),
-      generateHashCode(),
-      generateToString(),
-      generateCopy(),
-      if (withSerialize) generateSerializer(),
-      if (changesListenerName != null) generateChangesNotificator(),
-      ['}'],
-      if (withSerialize && withBuiltValueSerializer)
-        generateBuiltValueSerializer(),
-    ].expand((items) => items);
-  }
+  Future<List<Iterable<String>>> build() async => [
+        generateClassHeader(),
+        ['{'],
+        generateConstructors(),
+        if (withSerialize) await generateDeserializer(),
+        generateFields(),
+        if (withEquality) ...[
+          generateEqualityOperator(),
+          generateHashCode(),
+        ],
+        if (withSerialize) generateToString(),
+        if (withCopy) generateCopy(),
+        if (withSerialize) generateSerializer(),
+        if ((!immutable || withCopy) && observerNames?.isNotEmpty == true)
+          generateChangesNotificator(),
+        ['}'],
+        generateBaseModels(),
+        if (withSerialize && withBuiltValueSerializer)
+          generateBuiltValueSerializer(),
+      ];
 }

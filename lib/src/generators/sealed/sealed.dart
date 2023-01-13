@@ -11,49 +11,51 @@ class SealedClassGenerator extends ClassGenerator {
     required super.convertToSnakeCase,
     required super.immutable,
     required super.modelClass,
+    required super.mutateFromActionsOnly,
+    required super.observableFields,
     required super.resolver,
     required super.withCopy,
     required super.withEquality,
+    required super.withReflection,
     required super.withSerialize,
   }) : super(
           withBuiltValueSerializer: false,
-          changesListenerName: null,
+          observerNames: null,
           objectName: null,
           objectNameGetterName: null,
-        ) {
-    modelClassNameTyped = '_${className}BaseModel$genericTypes';
-  }
+        );
 
-  Future<Iterable<String>> generate() async {
-    await super.generate();
-
-    return [
-      generateClassHeader(abstract: true),
-      ['{'],
-      generateConstructors(),
-      if (withSerialize) generateDeserializer(),
-      generateFields(),
-      if (withSerialize) generateSerializer(),
-      generateSelectors(),
-      ['}'],
-      await generateSubclasses(),
-      generateModels(),
-    ].expand((items) => items);
-  }
+  @override
+  Future<List<Iterable<String>>> build() async => [
+        generateClassHeader(abstract: true),
+        ['{'],
+        generateConstructors(),
+        if (withSerialize) generateDeserializer(),
+        generateFields(),
+        if (withSerialize) generateSerializer(),
+        generateSelectors(),
+        ['}'],
+        await generateSubclasses(),
+        generateBaseModels(),
+        generateSubclassesModels(),
+      ];
 
   Future<Iterable<String>> generateSubclasses() async => [
         for (final method in methods)
           (await DataClassGenerator(
-            changesListenerName: null,
+            observerNames: null,
             convertToSnakeCase: convertToSnakeCase,
             immutable: immutable,
             modelClass: null,
+            mutateFromActionsOnly: mutateFromActionsOnly,
             objectName: null,
             objectNameGetterName: null,
+            observableFields: observableFields,
             resolver: resolver,
             withBuiltValueSerializer: false,
             withEquality: withEquality,
             withCopy: withCopy,
+            withReflection: withReflection,
             withSerialize: withSerialize,
 
             /// overrides

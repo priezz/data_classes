@@ -28,7 +28,7 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
         ],
         '',
         '/// Prevents `unused_element` warning for the sealed class definition',
-        'static void _dummy(_${className}Model _) {}',
+        'static void _dummy(${modelClass != null ? modelClass!.name : '_${className}Model'} _) {}',
         '',
       ];
 

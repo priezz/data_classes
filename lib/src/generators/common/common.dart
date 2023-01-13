@@ -8,21 +8,25 @@ import 'package:data_classes/src/generators/types.dart';
 export 'copy.dart';
 export 'core.dart';
 export 'equality.dart';
+export 'models.dart';
 export 'notification.dart';
 export 'serialization.dart';
 
 abstract class ClassGenerator {
   ClassGenerator({
-    required this.withBuiltValueSerializer,
-    required this.changesListenerName,
     required this.convertToSnakeCase,
-    required this.withCopy,
-    required this.withEquality,
     required this.immutable,
     required this.modelClass,
+    required this.mutateFromActionsOnly,
     required this.objectName,
     required this.objectNameGetterName,
+    required this.observableFields,
+    required this.observerNames,
     required this.resolver,
+    required this.withBuiltValueSerializer,
+    required this.withCopy,
+    required this.withEquality,
+    required this.withReflection,
     required this.withSerialize,
 
     /// overrides
@@ -53,7 +57,6 @@ abstract class ClassGenerator {
         modelClass!.name[0] == '_' ? 1 : 0,
         modelClass!.name.length - modelSuffix.length,
       );
-      modelClassNameTyped = '${modelClass!.name}$genericTypes';
     } else {
       className = classNameOverride!;
       _fields = fieldTypesOverride!.keys.toList();
@@ -65,8 +68,10 @@ abstract class ClassGenerator {
     }
 
     classNameTyped = '$className$genericTypes';
+    // modelClassNameTyped = '_${className}BaseModel$genericTypes';
+    modelClassNameTyped = '${className}BaseModel$genericTypes';
     objectNamePrefix = objectNameGetterName != null
-        ? '\$\{$objectNameGetterName(prev)\}.'
+        ? '\$\{$objectNameGetterName(nextModel)\}.'
         : (objectName?.isNotEmpty ?? false)
             ? '$objectName.'
             : '';
@@ -77,18 +82,21 @@ abstract class ClassGenerator {
     }
   }
 
-  final String? changesListenerName;
   final bool convertToSnakeCase;
   final bool immutable;
   // final ExecutableElement listener;
   final ClassElement? modelClass;
+  final bool mutateFromActionsOnly;
   final String? objectName;
   final String? objectNameGetterName;
+  final bool observableFields;
+  final List<String>? observerNames;
   final String? parentClassName;
   final Resolver resolver;
   final bool withBuiltValueSerializer;
   final bool withCopy;
   final bool withEquality;
+  final bool withReflection;
   final bool withSerialize;
 
   late final String className;
@@ -108,9 +116,11 @@ abstract class ClassGenerator {
   final List<VariableElement> requiredFields = [];
 
   List<VariableElement> _fields = [];
+  bool _initialized = false;
 
-  @mustCallSuper
-  Future<Iterable<String>> generate() async {
+  // @mustCallSuper
+  @nonVirtual
+  Future<Iterable<String>> _initialize() async {
     /// When import prefixes (`import '...' as '...';`) are used in the mutable
     /// class's file, then in the generated file, we need to use the right
     /// prefix in front of the type in the immutable class too. So here, we map
@@ -169,9 +179,19 @@ abstract class ClassGenerator {
         );
       }
     }
+    _initialized = true;
 
     return [];
   }
+
+  @nonVirtual
+  Future<Iterable<String>> generate() async {
+    if (!_initialized) await _initialize();
+
+    return (await build()).expand((items) => items);
+  }
+
+  Future<List<Iterable<String>>> build();
 
   /// Turns the [element] into type and the field name, separated by a space.
   String fieldDeclaration(
@@ -179,9 +199,51 @@ abstract class ClassGenerator {
     required bool required,
     MethodElement? method,
   }) {
-    final types = method != null ? paramsTypes[method]! : fieldTypes;
+    final String type = fieldType(
+      element,
+      ignoreDefaultValue: true,
+      method: method,
+      required: required,
+    );
 
-    return '${types[element]!}${required || element.isNullable(types) ? '' : '?'} ${element.name}';
+    return '$type ${element.name}';
+  }
+
+  bool fieldRequiresNullabilityModifier(
+    VariableElement element, {
+    bool ignoreDefaultValue = false,
+    bool required = false,
+    MethodElement? method,
+  }) {
+    final Map<VariableElement, String> types =
+        method != null ? paramsTypes[method]! : fieldTypes;
+    final bool hasDefaultValue = method != null
+        ? (element as ParameterElement).hasDefaultValue
+        : fieldDefaultValues.containsKey(element);
+
+    return !(required ||
+        !ignoreDefaultValue && hasDefaultValue ||
+        element.isNullable(types));
+  }
+
+  String fieldType(
+    VariableElement element, {
+    required bool required,
+    bool ignoreDefaultValue = false,
+    MethodElement? method,
+  }) {
+    final Map<VariableElement, String> types =
+        method != null ? paramsTypes[method]! : fieldTypes;
+    final String nullabilityModifier = fieldRequiresNullabilityModifier(
+      element,
+      ignoreDefaultValue: ignoreDefaultValue,
+      method: method,
+      required: required,
+    )
+        ? '?'
+        : '';
+
+    return '${types[element]!}$nullabilityModifier';
   }
 }
 

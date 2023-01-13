@@ -714,7 +714,7 @@ class Box<T extends Fruit>
   static Future<void> _notifyOnPropChange<T extends Fruit>(
       String name, dynamic prev, dynamic next) async {
     if (!eqShallow(next, prev)) {
-      await onBoxUpdate<T>('$name', next: next, prev: prev);
+      await onBoxUpdate<T>(name: name, newValue: next, oldValue: prev);
     }
   }
 }
@@ -890,7 +890,7 @@ class Shop implements ICopyable<Shop, ShopModel>, IEquitable, ISerializable {
   static Future<void> _notifyOnPropChange(
       String name, dynamic prev, dynamic next) async {
     if (!eqShallow(next, prev)) {
-      await onShopUpdate('$name', next: next, prev: prev);
+      await onShopUpdate(name: name, newValue: next, oldValue: prev);
     }
   }
 }

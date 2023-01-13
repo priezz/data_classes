@@ -39,6 +39,9 @@ extension ClassGeneratorCore on ClassGenerator {
         for (final field in fields) '..${field.name} = source.${field.name}',
         ';',
         '',
+        '/// Prevents `unused_element` warning for the sealed class definition',
+        'static void _dummy(${modelClass != null ? modelClass!.name : '_${className}Model'} _) {}',
+        '',
       ];
 
   Iterable<String> generateClassHeader({bool abstract = false}) => [
@@ -82,12 +85,12 @@ extension ClassGeneratorCore on ClassGenerator {
 
   List<String> _fieldSetter(VariableElement field) => [
         'set ${field.name}(${fieldTypes[field]} value) ',
-        if (changesListenerName != null) ...[
+        if (observerNames?.isNotEmpty == true) ...[
           '{',
-          "_notifyOnPropChange$genericTypes('${field.name}', _model.${field.name}, value);",
+          "_notifyOnPropChange('${field.name}', _model.${field.name}, value, _model);",
         ] else
           ' => ',
         '_model.${field.name} = value;',
-        if (changesListenerName != null) '}'
+        if (observerNames?.isNotEmpty == true) '}'
       ];
 }

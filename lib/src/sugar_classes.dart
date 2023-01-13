@@ -13,6 +13,14 @@ class JsonDeserializationError implements Exception {
   String toString() => cause;
 }
 
+// abstract class ICopyable<T> {
+//   T copy([DataClassBuilder? update]);
+
+//   Future<T> copyAsync([DataClassAsyncBuilder? update]);
+
+//   T copyWith();
+// }
+
 abstract class ICopyable<T extends ICopyable<T, TModel>, TModel> {
   T copy([ModelBuilder<TModel>? update]);
 

@@ -14,7 +14,7 @@ extension ClassGeneratorCopy on ClassGenerator {
         '@override $classNameTyped copy([ModelBuilder<$modelClassNameTyped>? update,]) => $classNameTyped._build((dest) {',
         '  _modelCopy(_model, dest);',
         '  update?.call(dest);',
-        if (changesListenerName != null) '  _notifyOnCopy(_model, dest);',
+        if (observerNames != null) '  _notifyOnCopy(_model, dest);',
         '});',
 
         /// copyAsync
@@ -27,7 +27,7 @@ extension ClassGeneratorCopy on ClassGenerator {
         'return $classNameTyped._build((dest) {',
         '  _modelCopy(model, dest);',
         '  update?.call(dest);',
-        if (changesListenerName != null) '  _notifyOnCopy(_model, dest);',
+        if (observerNames != null) '  _notifyOnCopy(_model, dest);',
         '});',
         '}',
 
