@@ -1,8 +1,3 @@
-/// Type [Void] is the same as [void] but can be used in type checking,
-/// e.g. `if (T == Void) ...`.
-// ignore: non_constant_identifier_names
-final Void = getType<void>();
-
 /// Returns [x as T] if [x] is of type [T] or [fallback] otherwise.
 T castOr<T>(dynamic x, T fallback) => x != null && x is T ? x : fallback;
 

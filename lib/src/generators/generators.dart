@@ -2,7 +2,8 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 
-import 'package:data_classes/src/annotations.dart';
+import 'package:data_classes/src/annotations/base.dart';
+import 'package:data_classes/src/annotations/from_annotation.dart';
 import 'package:data_classes/src/generators/common/common.dart';
 import 'package:data_classes/src/utils/elements.dart';
 
@@ -37,7 +38,7 @@ class SugarClassesGenerator extends GeneratorForAnnotation<SugarClass> {
     _elementsProcessed.add(element);
     typeCheck<SugarClass>(element);
 
-    final SugarClass params = SugarClass.fromAnnotation(annotation);
+    final SugarClass params = sugarClassFromAnnotation(annotation);
     // print(params);
     final ClassGenerator generator = params.sealed
         ? SealedClassGenerator(

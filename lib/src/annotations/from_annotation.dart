@@ -7,7 +7,9 @@ import 'package:source_gen/source_gen.dart';
 import 'package:data_classes/src/utils/types.dart';
 // import 'package:data_classes/src/annotations.dart' show FieldChangeListener;
 
-extension ConstantReaderGetters on ConstantReader {
+import 'base.dart';
+
+extension on ConstantReader {
   T? get<T extends Object>(String fieldName) {
     final ConstantReader? field = peek(fieldName);
     dynamic value = _getDartObjectValue(field?.objectValue);
@@ -62,3 +64,26 @@ extension ElementAnnotation on Element {
   DartObject? _getAnnotation(Type T) =>
       TypeChecker.fromRuntime(T).annotationsOf(this).firstOrNull;
 }
+
+SugarClass sugarClassFromAnnotation(ConstantReader annotation) => SugarClass(
+      builtValueSerializer: annotation.get('builtValueSerializer')!,
+      convertToSnakeCase: annotation.get('convertToSnakeCase')!,
+      copy: annotation.get('copy')!,
+      equality: annotation.get('equality')!,
+      getName: null,
+      immutable: annotation.get('immutable')!,
+      mutateFromActionsOnly: annotation.get('mutateFromActionsOnly')!,
+      objectNameGetterName:
+          annotation.get<ExecutableElement>('getName')?.displayName,
+      observable: annotation.get('observable')!,
+      observers: null,
+      observerNames: annotation
+          // .get<Iterable<ExecutableElement>>('observers')
+          .get<List>('observers')
+          ?.map((o) => castOr<String>(o.displayName, ''))
+          .toList(),
+      reflection: annotation.get('reflection')!,
+      name: annotation.get('name'),
+      sealed: annotation.get('sealed')!,
+      serialize: annotation.get('serialize')!,
+    );

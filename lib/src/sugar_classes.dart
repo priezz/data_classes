@@ -1,9 +1,18 @@
 import 'utils/types.dart';
 
-typedef Class = void;
+typedef FieldChangeListener = Future<void> Function<T>({
+  required String name,
+  required T? newValue,
+  required T? oldValue,
+});
 typedef Json = Map<dynamic, dynamic>;
 typedef ModelBuilder<T> = void Function(T);
 typedef ModelBuilderAsync<T> = Future<void> Function(T);
+
+/// Type [Void] is the same as [void] but can be used in type checking,
+/// e.g. `if (T == Void) ...`.
+// ignore: non_constant_identifier_names
+final Void = getType<void>();
 
 class JsonDeserializationError implements Exception {
   JsonDeserializationError(this.cause);
