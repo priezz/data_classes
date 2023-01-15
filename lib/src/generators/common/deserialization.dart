@@ -2,8 +2,8 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
 
-import 'package:data_classes/src/annotations.dart';
-import 'package:data_classes/src/utils/annotations.dart';
+import 'package:data_classes/src/annotations/annotations.dart';
+import 'package:data_classes/src/annotations/from_annotation.dart';
 import 'package:data_classes/src/utils/strings.dart';
 
 import 'common.dart';
