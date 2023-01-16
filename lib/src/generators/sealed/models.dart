@@ -11,7 +11,7 @@ extension SealedClassModels on SealedClassGenerator {
           'class ${getModelSubclassNameTyped(method)} extends $modelClassNameTyped {',
           for (final param in method.parameters)
             if (observableFields) ...[
-              'final Observable<${fieldType(param, method: method, required: false)}> _${param.name} = Observable(${param.defaultValueCode ?? 'null'});',
+              "final Observable<${fieldType(param, method: method, required: false)}> _${param.name} = Observable(${param.defaultValueCode ?? 'null'}, name: '${param.name}');",
               '${fieldType(param, method: method, required: true)} get ${param.name} => _${param.name}.value${fieldRequiresNullabilityModifier(param, method: method) ? '!' : ''};',
               'set ${param.name}(${fieldType(param, method: method, required: true)} value) => _${param.name}.value = value;',
               '',
