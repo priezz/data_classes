@@ -152,7 +152,8 @@ abstract class ClassGenerator {
       };
       for (final field in fields) {
         for (final item in declarations[field]!) {
-          final RegExpMatch? match = RegExp(r'^.*=\s*(.*)$').firstMatch(item);
+          final RegExpMatch? match =
+              RegExp(r'^[^=]*=\s*(.*)\s*$').firstMatch(item);
           if (match != null) {
             fieldDefaultValues[field] = match.group(1)!;
             break;
@@ -187,8 +188,10 @@ abstract class ClassGenerator {
   @nonVirtual
   Future<Iterable<String>> generate() async {
     if (!_initialized) await _initialize();
+    final Iterable<String> result = (await build()).expand((items) => items);
+    // print(result.join('\n'));
 
-    return (await build()).expand((items) => items);
+    return result;
   }
 
   Future<List<Iterable<String>>> build();
