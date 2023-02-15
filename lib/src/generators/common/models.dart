@@ -2,7 +2,7 @@ import 'common.dart';
 
 extension ClassModels on ClassGenerator {
   Iterable<String> generateBaseModels() => [
-        'class $modelClassNameTyped {',
+        'class $modelClassNameTyped${parentClassName != null ? ' extends ${parentClassName}BaseModel$genericTypes' : ''} {',
         for (final field in fields)
           if (observableFields) ...[
             "final Observable<${fieldType(field, required: false)}> _${field.name} = Observable(${fieldDefaultValues[field] ?? 'null'}, name: '${field.name}');",

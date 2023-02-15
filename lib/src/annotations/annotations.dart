@@ -33,10 +33,10 @@ class DataClass extends SugarClass {
 class Sealed extends SugarClass {
   const Sealed({
     super.convertToSnakeCase = false,
-    super.copy = true,
+    // super.copy = true,
     super.immutable = false,
     super.serialize = true,
-  }) : super(equality: true, sealed: true);
+  }) : super(copy: false, equality: true, sealed: true);
 }
 
 @immutable

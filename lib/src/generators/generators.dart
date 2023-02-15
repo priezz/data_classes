@@ -49,7 +49,7 @@ class SugarClassesGenerator extends GeneratorForAnnotation<SugarClass> {
             observableFields: !params.immutable && params.observable,
             resolver: buildStep.resolver,
             withEquality: params.equality,
-            withCopy: false, // params.copy,
+            withCopy: params.copy,
             withReflection: params.reflection,
             withSerialize: params.serialize,
           )
