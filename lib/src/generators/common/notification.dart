@@ -12,7 +12,7 @@ extension ClassGeneratorNotification on ClassGenerator {
         '}',
         '',
         'static Future<void> _notifyOnPropChange<T>(String name, T? prev, T? next, $modelClassNameTyped nextModel,) async {',
-        '  if (!eqShallow(next, prev)) {',
+        '  if (!eqDeep(next, prev)) {',
         '    await Future.wait([',
         '      for (final listener in _listeners)',
         '        listener(',

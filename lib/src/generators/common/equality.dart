@@ -20,12 +20,13 @@ extension ClassGeneratorEquality on ClassGenerator {
           'hashList([',
           for (final field in fields)
             field.isNullable(fieldTypes)
-                ? 'if (${field.name} != null) ${field.name}!,'
+                ? 'if (${field.name} != null) ${field.name},'
                 : '${field.name},',
           ']);',
         ] else
           '0;',
       ];
 
-  String get _equalityFn => immutable ? 'eqShallow' : 'eqDeep';
+  // String get _equalityFn => immutable ? 'eqShallow' : 'eqDeep';
+  String get _equalityFn => 'eqDeep';
 }
