@@ -2,6 +2,7 @@ import '../sugar_classes.dart' show ISerializable;
 
 dynamic serializeToJson(dynamic obj) {
   if (obj == null) return null;
+
   if (obj is Map) {
     return {
       for (final entry in obj.entries)
@@ -19,8 +20,14 @@ dynamic serializeToJson(dynamic obj) {
   if (obj is double) return obj.isFinite ? obj : 'NaN';
 
   try {
-    if (obj is ISerializable || obj.toJson is Function) return obj.toJson();
-  } catch (_) {}
+    bool hasToJson = false;
+    try {
+      hasToJson = obj is ISerializable || obj.toJson is Function;
+    } catch (_) {}
+    if (hasToJson) return obj.toJson();
+  } catch (e) {
+    print('[serializeToJson] Error: $e. $obj');
+  }
 
   throw Exception('Invalid json field: $obj');
 }
