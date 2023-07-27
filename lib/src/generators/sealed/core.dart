@@ -10,20 +10,26 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
         '$className._();',
         '',
         for (final method in methods) ...[
-          'static ${getSubclassNameTyped(method)} ${method.name}$genericTypesFull({',
-          for (final field in requiredFields)
-            '  required ${fieldDeclaration(field, required: true)},',
-          for (final field in nonRequiredFields)
-            '${fieldDeclaration(field, required: false)},',
-          for (final param in method.parameters)
-            '${param.hasDefaultValue || param.isNullable(paramsTypes[method]!) ? '' : 'required '}'
-                '${fieldDeclaration(param, method: method, required: true)}'
-                '${param.hasDefaultValue ? ' = ${param.defaultValueCode}' : ''}'
-                ',',
-          '}) => ${getSubclassNameTyped(method)}(',
-          for (final field in fields) '${field.name}: ${field.name}, ',
-          for (final param in method.parameters)
-            '${param.name}: ${param.name}, ',
+          'static ${getSubclassNameTyped(method)} ${method.name}$genericTypesFull(',
+          if (fields.isNotEmpty) ...[
+            '{',
+            for (final field in requiredFields)
+              '  required ${fieldDeclaration(field, required: true)},',
+            for (final field in nonRequiredFields)
+              '${fieldDeclaration(field, required: false)},',
+            for (final param in method.parameters)
+              '${param.hasDefaultValue || param.isNullable(paramsTypes[method]!) ? '' : 'required '}'
+                  '${fieldDeclaration(param, method: method, required: true)}'
+                  '${param.hasDefaultValue ? ' = ${param.defaultValueCode}' : ''}'
+                  ',',
+            '}',
+          ],
+          ') => ${getSubclassNameTyped(method)}(',
+          if (fields.isNotEmpty) ...[
+            for (final field in fields) '${field.name}: ${field.name}, ',
+            for (final param in method.parameters)
+              '${param.name}: ${param.name}, ',
+          ],
           ');',
         ],
         '',
