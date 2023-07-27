@@ -1,6 +1,6 @@
 name: data_classes
 description: Automatic generation of data and sealed classes based on a "blueprint" class.
-version: 1.12.0
+version: 1.12.1
 homepage: https://github.com/priezz/data_classes
 
 environment:

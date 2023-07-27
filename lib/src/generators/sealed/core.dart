@@ -11,7 +11,7 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
         '',
         for (final method in methods) ...[
           'static ${getSubclassNameTyped(method)} ${method.name}$genericTypesFull(',
-          if (fields.isNotEmpty) ...[
+          if (fields.isNotEmpty || method.parameters.isNotEmpty) ...[
             '{',
             for (final field in requiredFields)
               '  required ${fieldDeclaration(field, required: true)},',
@@ -25,7 +25,7 @@ extension SealedClassGeneratorCore on SealedClassGenerator {
             '}',
           ],
           ') => ${getSubclassNameTyped(method)}(',
-          if (fields.isNotEmpty) ...[
+          if (fields.isNotEmpty || method.parameters.isNotEmpty) ...[
             for (final field in fields) '${field.name}: ${field.name}, ',
             for (final param in method.parameters)
               '${param.name}: ${param.name}, ',
