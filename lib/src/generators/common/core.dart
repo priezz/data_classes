@@ -68,9 +68,7 @@ extension ClassGeneratorCore on ClassGenerator {
   Iterable<String> generateFields() => [
         if (parentClassName != null) '@override',
         'final $modelClassNameTyped _model = $modelClassNameTyped();',
-        if (fields.isNotEmpty) ...[
-          '',
-        ],
+        '',
         for (final field in fields) ...[
           if (field.documentationComment != null) field.documentationComment!,
           _fieldGetter(field),
